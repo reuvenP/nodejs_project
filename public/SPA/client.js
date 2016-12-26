@@ -4,11 +4,13 @@ myapp.config(function ($routeProvider) {
     $routeProvider
         .when('/home', {
             templateUrl: 'SPA/views/home.html'
-        });
+        })
 
-        // .when('/branches', {
-        //     templateUrl: 'SPA/views/branches.html',
-        //     controller  : 'branchesController',
-        //     controllerAs : 'branches'
-        // })
+        .when('/login', {
+            templateUrl: 'login.html'
+        })
+
+        .otherwise({
+            templateUrl: 'SPA/views/home.html'
+        });
 });
