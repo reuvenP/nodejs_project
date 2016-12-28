@@ -47,11 +47,12 @@ exporter.authenticator = function(req, res, next) {
         if (!user) {
             // debug("Unknown user '" + req.body.username + "'");
             // req.flash('error', info.message);
-            // return res.redirect('/login');
+            //res.redirect('/#/login');
             err = "Unknown user '" + req.body.username + "'";
             debug(err);
             //req.flash('error', err);
             return next(err);
+            //return res.redirect('/#/login');
         }
 
         //check the login details that were hashed by random number

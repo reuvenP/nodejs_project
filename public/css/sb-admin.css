@@ -60,14 +60,7 @@ body {
     color: #999;
 }
 
-.top-nav>li>a:hover,
-.top-nav>li>a:focus,
-.top-nav>.open>a,
-.top-nav>.open>a:hover,
-.top-nav>.open>a:focus {
-    color: #fff;
-    background-color: #000;
-}
+
 
 .top-nav>.open>.dropdown-menu {
     float: left;
@@ -122,7 +115,7 @@ ul.alert-dropdown {
         border: none;
         border-radius: 0;
         overflow-y: auto;
-        background-color: #222;
+        background-color: #f8f8f8;
         bottom: 0;
         overflow-x: hidden;
         padding-bottom: 40px;
@@ -135,7 +128,26 @@ ul.alert-dropdown {
     .side-nav li a:hover,
     .side-nav li a:focus {
         outline: none;
-        background-color: #000 !important;
+        background-color: #e7e7e7 !important;
+    }
+
+    .navbar-default .navbar-nav>li>a,
+    .navbar-default .navbar-nav>.active>a {
+        color: #337ab7;
+    }
+
+    .navbar-default .navbar-nav>.active>a, navbar-default .navbar-nav>.active>a:hover, navbar-default .navbar-nav>.active>a:focus,
+    .navbar-default .navbar-nav li a:focus, .navbar-default .navbar-nav li a:hover, .navbar-default .navbar-nav li a:active,
+    .top-nav>li>a {
+        color: #23527c;
+    }
+
+    .navbar-default li a {
+        color: #337ab7;
+    }
+
+    .navbar-default li a:hover, .navbar-default li a:active {
+        color: #23527c;
     }
 }
 
@@ -147,11 +159,6 @@ ul.alert-dropdown {
     display: block;
     padding: 10px 15px 10px 38px;
     text-decoration: none;
-    color: #999;
-}
-
-.side-nav>li>ul>li>a:hover {
-    color: #fff;
 }
 
 /* Flot Chart Containers */
