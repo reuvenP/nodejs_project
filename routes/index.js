@@ -14,8 +14,10 @@ router.get('/index.html', function(req, res, next) {
 });
 
 router.get('/login.html', function(req, res, next) {
+    var flashedErrors = req.flash('error') || [null];
+    var error = flashedErrors[0];
     req.session.random = Math.floor((Math.random() * 2000000000) + 1);
-    res.render("login", {title: "Login", random: req.session.random});
+    res.render("login", {title: "Login", random: req.session.random, error: error });
 });
 
 module.exports = router;

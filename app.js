@@ -9,8 +9,7 @@ var mongoose = require('mongoose');
 var debug = require('debug')('nodejs-project:app');
 var connectMongo = require('connect-mongo');
 var passport = require('passport');
-
-var app = express();
+var flash = require('connect-flash');
 
 var MongoStore = connectMongo(session);
 var sessConnStr = "mongodb://localhost/project_sessions";
@@ -25,6 +24,8 @@ sessionConnect.on('open', function() { debug('MongoDB open : '); });
 sessionConnect.on('close', function() { debug('MongoDB close: '); });
 process.on('SIGINT', function() { sessionConnect.close(function () { process.exit(0); });});
 sessionConnect.open(sessConnStr);
+
+var app = express();
 
 // view engine setup
 app.set('views', path.join(__dirname, 'views'));
@@ -47,16 +48,17 @@ app.use(session({
     cookie: { maxAge: 900000, httpOnly: true, sameSite: true }
 }));
 
+app.use(flash());
 app.use(passport.initialize());
 app.use(passport.session());
 
 var index = require('./routes/index');
 var users = require('./routes/users');
-var login = require('./routes/login');
+//var login = require('./routes/login');
 
 app.use('/', index);
 app.use('/users', users);
-app.use('/login', login);
+//app.use('/login', login);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {

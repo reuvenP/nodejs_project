@@ -34,46 +34,38 @@ passport.deserializeUser(function(id, done) {
     });
 });
 
+function handleError(error, req, res, redirectTo) {
+    debug(error);
+    req.flash('error', error);
+    res.redirect(redirectTo);
+}
+
 var exporter = {};
-exporter.authenticator = function(req, res, next) {
+exporter.authenticator = function(req, res, next, redirectOk, redirectFail) {
     passport.authenticate('local', function (err, user, info) {
         debug("start");
         //get user object from LocalStrategy
         if (err) {
-            debug(err);
-            //req.flash('error', err);
-            return next(err);
+            return handleError('User authentication failed: ' + err, req, res, redirectFail);
         }
         if (!user) {
-            // debug("Unknown user '" + req.body.username + "'");
-            // req.flash('error', info.message);
-            //res.redirect('/#/login');
-            err = "Unknown user '" + req.body.username + "'";
-            debug(err);
-            //req.flash('error', err);
-            return next(err);
-            //return res.redirect('/#/login');
+            return handleError("Unknown user '" + req.body.username + "'", req, res, redirectFail);
         }
 
         //check the login details that were hashed by random number
         var realHash = sha1(user.username + ':' + user.password + ':' + req.session.random);
         if (realHash !== req.body.hashedLogin) {
-            err = "Wrong password for '" + user.username + "'";
-            debug(err);
-            //req.flash('error', err);
-            return next(err);
+            return handleError("Wrong password for '" + user.username + "'", req, res, redirectFail);
         }
 
         // If we are here then authentication was successful.
         req.logIn(user, function (err) {
             if (err) {
-                debug(err);
-                //req.flash('error', err);
-                return next(err);
+                return handleError("Login error for '" + user.username + "'", req, res, redirectFail);
             }
 
             debug("Logged as: " + user.username);
-            return res.redirect('/');
+            return res.redirect(redirectOk);
             // var flashedReferer = req.flash('referer') || ['/'];
             // var referer = flashedReferer[0];
             // return res.redirect(referer);

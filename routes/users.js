@@ -9,7 +9,7 @@ router.get('/', function(req, res, next) {
 });
 
 router.post('/login', function(req, res, next) {
-    users.authenticator(req, res, next);
+    users.authenticator(req, res, next, '/#/home', '/#/login');
 });
 
 router.get('/logout', function(req, res, next) {

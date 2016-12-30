@@ -11,12 +11,26 @@
         </ol>
     </div>
 </div>
+
+<% if (error) { %>
+<div class="row">
+    <div class="col-lg-12">
+        <div class="alert alert-danger alert-dismissable">
+            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+            <i class="fa fa-exclamation-circle"></i>  <strong>Login Error:</strong> <%- error %>
+        </div>
+    </div>
+</div>
+
+<% } else { %>
+<% } %>
+
 <!-- /.row -->
 
 <div class="row">
-    <div class="col-lg-3"></div>
+    <div class="col-lg-4"></div>
 
-    <div class="col-lg-6">
+    <div class="col-lg-4">
             <div class="col-sm-12 col-md-10 col-md-offset-1">
                 <form method="POST" action="/users/login" id="loginForm" onsubmit="calcHashedLogin()">
                     <div class="form-group input-group">
@@ -37,6 +51,6 @@
             </div>
     </div>
 
-    <div class="col-lg-3"></div>
+    <div class="col-lg-4"></div>
 </div>
 <!-- /.row -->
