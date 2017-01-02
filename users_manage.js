@@ -5,8 +5,8 @@ var debug = require('debug')('nodejs-project:users');
 var sha1 = require('sha1');
 
 passport.use(new LocalStrategy(
-    { usernameField: 'username', passwordField: 'hashedLogin'},
-    function(username, hashedLogin, done) {
+    {usernameField: 'username', passwordField: 'hashedLogin'},
+    function (username, hashedLogin, done) {
         User.findOne({username: username}, function (error, user) {
             if (error) {
                 debug("Login error: " + error);
@@ -14,7 +14,7 @@ passport.use(new LocalStrategy(
             }
             if (!user) {
                 debug("Login no user: " + error);
-                return done(null, false, { message: "User '" + username + "' doesn't exist" });
+                return done(null, false, {message: "User '" + username + "' doesn't exist"});
             }
 
             //password cannot be checked here since we need the random number from the session.
@@ -24,12 +24,12 @@ passport.use(new LocalStrategy(
     }
 ));
 
-passport.serializeUser(function(user, done) {
+passport.serializeUser(function (user, done) {
     done(null, user._id);
 });
 
-passport.deserializeUser(function(id, done) {
-    User.findById(id, function(err, user) {
+passport.deserializeUser(function (id, done) {
+    User.findById(id, function (err, user) {
         done(err, user);
     });
 });
@@ -40,8 +40,7 @@ function handleError(error, req, res, redirectTo) {
     res.redirect(redirectTo);
 }
 
-var exporter = {};
-exporter.authenticator = function(req, res, next, redirectOk, redirectFail) {
+var userAuthenticator = function (req, res, next, redirectOk, redirectFail) {
     passport.authenticate('local', function (err, user, info) {
         debug("start");
         //get user object from LocalStrategy
@@ -72,5 +71,28 @@ exporter.authenticator = function(req, res, next, redirectOk, redirectFail) {
         });
     })(req, res, next);
 };
+
+var getUsers = function(onSuccess, onFail) {
+    User.find({isActive: true}, function (err, users) {
+        if (err) return onFail(err);
+        return onSuccess(users);
+    });
+};
+
+var deleteUser = function(userId, onSuccess, onFail) {
+    User.findById(userId, function (err, user) {
+        if (err) return onFail(err);
+        user.isActive = false;
+        user.save(function (err) {
+            if (err) return onFail(err);
+            getUsers(onSuccess, onFail);
+        });
+    });
+};
+
+var exporter = {};
+exporter.authenticator = userAuthenticator;
+exporter.getUsers = getUsers;
+exporter.deleteUser = deleteUser;
 
 module.exports = exporter;
