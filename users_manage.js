@@ -7,7 +7,7 @@ var sha1 = require('sha1');
 passport.use(new LocalStrategy(
     {usernameField: 'username', passwordField: 'hashedLogin'},
     function (username, hashedLogin, done) {
-        User.findOne({username: username}, function (error, user) {
+        User.findOne({username: username, isActive: true}, function (error, user) {
             if (error) {
                 debug("Login error: " + error);
                 return done(error);
@@ -18,7 +18,7 @@ passport.use(new LocalStrategy(
             }
 
             //password cannot be checked here since we need the random number from the session.
-            //the authentication continues in /login post (login.js)
+            //the authentication continues in userAuthenticator soon
             return done(null, user);
         });
     }
@@ -30,7 +30,9 @@ passport.serializeUser(function (user, done) {
 
 passport.deserializeUser(function (id, done) {
     User.findById(id, function (err, user) {
-        done(err, user);
+        if (err) return done(err, null);
+        if (!user.isActive) return done(null, null);
+        done(null, user);
     });
 });
 

@@ -39,8 +39,8 @@ router.get('/getUsers', function (req, res, next) {
 });
 
 function checkDeletePermission(req, res, next) {
-    if (!req.user.admin){
-        return res.status(401).send('Must be admin for deleting users');
+    if (!req.user || !req.user.admin){
+        return res.status(401).send('Must login with active admin account for deleting users');
     }
     if (req.user._id == req.params.userId) {
          return res.status(401).send('You cannot delete yourself');
