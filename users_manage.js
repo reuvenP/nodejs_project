@@ -74,20 +74,22 @@ var userAuthenticator = function (req, res, next, redirectOk, redirectFail) {
     })(req, res, next);
 };
 
-var getUsers = function(onSuccess, onFail) {
-    User.find({isActive: true}, function (err, users) {
-        if (err) return onFail(err);
-        return onSuccess(users);
+var getUsers = function(then) {
+    var query = User.find({isActive: true});
+    query.select('-password');
+    query.exec(function (err, users) {
+        then(err, users);
     });
 };
 
-var deleteUser = function(userId, onSuccess, onFail) {
+var deleteUser = function(userId, then) {
     User.findById(userId, function (err, user) {
-        if (err) return onFail(err);
+        if (err) return then(err, []);
+
         user.isActive = false;
         user.save(function (err) {
-            if (err) return onFail(err);
-            getUsers(onSuccess, onFail);
+            if (err) return then(err, []);
+            getUsers(then);
         });
     });
 };

@@ -25,7 +25,12 @@ router.get('/getUsers', function (req, res, next) {
     if (!req.user) {
         return res.status(401).send('You must login first to view the neighbours');
     }
-    users.getUsers(function (users) {
+
+    users.getUsers(function (error, users) {
+        if (error) {
+            return res.status(500).send(error);
+        }
+
         for (var i = 0; i < users.length; i++) {
             if (users[i]._id.toString() == req.user._id.toString()) {
                 users[i]._doc.myUser = true;
@@ -33,8 +38,6 @@ router.get('/getUsers', function (req, res, next) {
             }
         }
         res.json(users);
-    }, function (error) {
-        res.status(500).send(error);
     });
 });
 
@@ -49,11 +52,11 @@ function checkDeletePermission(req, res, next) {
 }
 
 router.delete('/deleteUser/:userId', checkDeletePermission, function (req, res, next) {
-    users.deleteUser(req.params.userId,
-        function (users) {
-            res.json(users);
-        }, function (error) {
-            res.status(500).send(error);
+    users.deleteUser(req.params.userId, function(error, users) {
+        if (error) {
+            return res.status(500).send(error);
+        }
+        return res.json(users);
         });
 });
 

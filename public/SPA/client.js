@@ -1,8 +1,37 @@
 var app = angular.module('myapp', ['ngAnimate', 'ui.bootstrap', 'ngRoute']);
 
-app.factory('sharedData', function() {
-    return {};
-});
+app.factory('usersService', ['$http', '$q', function($http, $q) {
+    var usersList = [];
+    var getUsers = function() {
+        var deferred = $q.defer();
+        $http.get('/users/getUsers').then(function(response) {
+            usersList = response.data;
+            deferred.resolve(usersList);
+        }, function(response) {
+            deferred.reject(response);
+        });
+
+        return deferred.promise;
+    };
+
+    var deleteUser = function(userId) {
+        var deferred = $q.defer();
+        $http.delete('/users/deleteUser/' + userId)
+            .then(function (response) {
+                usersList = response.data;
+                deferred.resolve(usersList);
+            }, function (response) {
+                deferred.reject(response);
+        });
+
+        return deferred.promise;
+    };
+
+    var usersService = {};
+    usersService.getUsers = getUsers;
+    usersService.deleteUser = deleteUser;
+    return usersService;
+}]);
 
 app.config(function ($routeProvider) {
     $routeProvider
@@ -13,12 +42,6 @@ app.config(function ($routeProvider) {
         .when('/home', {
             templateUrl: 'SPA/views/home.html'
         })
-
-        // .when('/users', {
-        //     templateUrl: 'SPA/views/users.html',
-        //     controller: 'usersController',
-        //     controllerAs: 'users'
-        // })
 
         .when('/users/:operation?/:username?', {
             templateUrl: 'SPA/views/users.html',
@@ -69,13 +92,13 @@ function openModalController($uibModal, model, controller, modelParamName, templ
     });
 }
 
-app.controller('usersController', ['$http', '$routeParams', '$uibModal', 'sharedData', usersController]);
-function usersController($http, $routeParams, $uibModal, sharedData) {
+app.controller('usersController', ['$routeParams', '$uibModal', 'usersService', usersController]);
+function usersController($routeParams, $uibModal, usersService) {
     var ctrl = this;
     usersList = [];
-    $http.get('/users/getUsers').then(
-        function (response) {
-            ctrl.usersList = response.data;
+    usersService.getUsers().then(
+        function (users) {
+            ctrl.usersList = users;
             if ($routeParams.operation && $routeParams.username) {
                 for (var i=0; i < ctrl.usersList.length; i++) {
                     if (ctrl.usersList[i].username === $routeParams.username) {
@@ -86,20 +109,20 @@ function usersController($http, $routeParams, $uibModal, sharedData) {
             }
         }, function (response) {
             ctrl.error = response.status + ' - ' + response.statusText + ": " + response.data;
-        });
+        }
+    );
 
     ctrl.deleteUser = function (user) {
         //TODO modal confirm box
-        $http.delete('/users/deleteUser/' + user._id).then(
-            function (response) {
-                ctrl.usersList = response.data;
+        usersService.deleteUser(user._id)
+            .then(function (users) {
+                ctrl.usersList = users;
             }, function (response) {
                 ctrl.error = response.status + ' - ' + response.statusText + ": " + response.data;
-            });
+         });
     };
 
     ctrl.editUser = function(user) {
-        sharedData.selectedUser = user;
         window.location = "/#/users/edit/" + user.username;
     };
 }
