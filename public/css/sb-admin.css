@@ -231,3 +231,12 @@ ul.alert-dropdown {
 .panel-yellow > a:hover {
     color: #df8a13;
 }
+
+#success_message{ display: none;}
+button.btn.btn-warning {
+    float: right;
+}
+
+.modal .well {
+    margin: 0px;
+}
