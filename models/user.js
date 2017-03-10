@@ -3,7 +3,7 @@ var Schema = mongo.Schema;
 var debug = require("debug")("sess:user");
 
 var userConnStr = 'mongodb://localhost/project';
-var db = mongo.createConnection()
+var db = mongo.createConnection();
 db.on('connecting', function() { debug('Connecting to MongoDB: '); });
 db.on('connected', function() { debug('Connected to MongoDB: '); });
 db.on('disconnecting', function() { debug('Disconnecting to MongoDB: '); });
@@ -16,7 +16,8 @@ process.on('SIGINT', function() { db.close(function () { process.exit(0); });});
 db.open(userConnStr);
 
 var User = db.model('User', new Schema({
-        name: String,
+        firstName: String,
+        familyName: String,
         username: {type: String, required: true, unique: true},
         password: {type: String, required: true},
         email: {type: String, required: true, unique: true},

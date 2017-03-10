@@ -3,6 +3,7 @@ var LocalStrategy = require('passport-local').Strategy;
 var User = require('./models/user');
 var debug = require('debug')('nodejs-project:users');
 var sha1 = require('sha1');
+var extend = require('util')._extend;
 
 passport.use(new LocalStrategy(
     {usernameField: 'username', passwordField: 'hashedLogin'},
@@ -94,9 +95,32 @@ var deleteUser = function(userId, then) {
     });
 };
 
+var getUser = function(userId, then) {
+    User.findById(userId, function (err, user) {
+        if (err) return then(err, null);
+        if (user) {
+            delete(user.password);
+            return then(null, user);
+        }
+        else {
+            then("user not found", null)
+        }
+    });
+};
+
+var updateUser = function(user, then) {
+    getUser(user.userId, function(err, current) {
+        if (err) return then(err);
+        extend(current, user);
+        current.save(then)
+    });
+};
+
 var exporter = {};
 exporter.authenticator = userAuthenticator;
 exporter.getUsers = getUsers;
+exporter.getUser = getUser;
 exporter.deleteUser = deleteUser;
+exporter.updateUser = updateUser;
 
 module.exports = exporter;

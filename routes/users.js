@@ -41,6 +41,44 @@ router.get('/getUsers', function (req, res, next) {
     });
 });
 
+router.get('/getUser/:userId', function (req, res, next) {
+    users.getUser(req.params.userId, function (error, user) {
+        if (error) {
+            return res.status(500).send(error);
+        }
+        res.json(user);
+    });
+});
+
+function checkLoggedIn (req, res, next) {
+    if (!req.user) {
+        return res.status(401).send('You must login first');
+    }
+    next();
+}
+
+function checkAdminOrSelfOperation(req, res, next) {
+    if (!req.user.admin && req.user._id != req.params.userId) {
+        return res.status(401).send('You cannot do this operation on other users');
+    }
+    next();
+}
+
+router.put('/updateUser/:userId', checkLoggedIn, checkAdminOrSelfOperation, function (req, res, next) {
+    var user = req.body.user;
+    if (!req.user.isAdmin) {
+        delete(user.admin);
+        delete(user.isActive);
+        delete(user.recoveryNumber);
+    }
+    users.updateUser(user, function(error) {
+       if (error) {
+           return res.status(500).send(error);
+       }
+    });
+});
+
+
 function checkDeletePermission(req, res, next) {
     if (!req.user || !req.user.admin){
         return res.status(401).send('Must login with active admin account for deleting users');
