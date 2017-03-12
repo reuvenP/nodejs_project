@@ -21,6 +21,13 @@ router.get('/logout', function (req, res, next) {
     });
 });
 
+router.get('/getUserByCookie', function(req, res,next) {
+    if (!req.user) {
+        return res.status(401).send('Not logged-in');
+    }
+    return res.json(req.user);
+});
+
 router.get('/getUsers', function (req, res, next) {
     if (!req.user) {
         return res.status(401).send('You must login first to view the neighbours');
@@ -50,9 +57,16 @@ router.get('/getUser/:userId', function (req, res, next) {
     });
 });
 
-function checkLoggedIn (req, res, next) {
+function checkLoggedIn(req, res, next) {
     if (!req.user) {
         return res.status(401).send('You must login first');
+    }
+    next();
+}
+
+function checkAdmin(req, res, next) {
+    if (!req.user || !req.user.admin) {
+        return res.status(401).send('You must login as admin for that operation');
     }
     next();
 }
@@ -64,9 +78,9 @@ function checkAdminOrSelfOperation(req, res, next) {
     next();
 }
 
-router.put('/updateUser/:userId', checkLoggedIn, checkAdminOrSelfOperation, function (req, res, next) {
+router.put('/updateUser/:userId', checkLoggedIn, checkAdminOrSelfOperation, validateUser, function (req, res, next) {
     var user = req.body.user;
-    if (!req.user.isAdmin) {
+    if (!req.user.admin) {
         delete(user.admin);
         delete(user.isActive);
         delete(user.recoveryNumber);
@@ -89,13 +103,28 @@ function checkDeletePermission(req, res, next) {
     next();
 }
 
+function validateUser(req, res, next) {
+    //TODO validate user in req.body
+    next();
+}
+
 router.delete('/deleteUser/:userId', checkDeletePermission, function (req, res, next) {
     users.deleteUser(req.params.userId, function(error, users) {
         if (error) {
             return res.status(500).send(error);
         }
         return res.json(users);
-        });
+    });
+});
+
+
+router.post('/addUser', checkAdmin, validateUser, function(req, res, next) {
+    users.addUser(req.body.user, function(error, user) {
+        if (error) {
+            return res.status(500).send(error);
+        }
+        return res.json(user);
+    });
 });
 
 module.exports = router;

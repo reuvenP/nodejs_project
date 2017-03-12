@@ -16,15 +16,16 @@ process.on('SIGINT', function() { db.close(function () { process.exit(0); });});
 db.open(userConnStr);
 
 var User = db.model('User', new Schema({
-        firstName: String,
-        familyName: String,
-        username: {type: String, required: true, unique: true},
-        password: {type: String, required: true},
-        email: {type: String, required: true, unique: true},
-        admin: Boolean,
-        apartment: Number,
-        recoveryNumber: Number,
-        isActive: {type: Boolean, default: true}
-    }));
+    firstName: String,
+    familyName: String,
+    username: {type: String, required: true, unique: true},
+    password: {type: String, required: true},
+    email: {type: String, required: true, unique: true},
+    phone: {type:String},
+    admin: Boolean,
+    apartment: Number,
+    recoveryNumber: Number,
+    isActive: {type: Boolean, default: true}
+}));
 
 module.exports = User;

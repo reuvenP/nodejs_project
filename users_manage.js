@@ -33,6 +33,7 @@ passport.deserializeUser(function (id, done) {
     User.findById(id, function (err, user) {
         if (err) return done(err, null);
         if (!user.isActive) return done(null, null);
+        delete(user._doc.password);
         done(null, user);
     });
 });
@@ -48,26 +49,32 @@ var userAuthenticator = function (req, res, next, redirectOk, redirectFail) {
         debug("start");
         //get user object from LocalStrategy
         if (err) {
-            return handleError('User authentication failed: ' + err, req, res, redirectFail);
+            //return handleError('User authentication failed: ' + err, req, res, redirectFail);
+            return res.status(500).send('User authentication failed: ' + err);
         }
         if (!user) {
-            return handleError("Unknown user '" + req.body.username + "'", req, res, redirectFail);
+            //return handleError("Unknown user '" + req.body.username + "'", req, res, redirectFail);
+            return res.status(401).send("Unknown user '" + req.body.username + "'");
         }
 
         //check the login details that were hashed by random number
         var realHash = sha1(user.username + ':' + user.password + ':' + req.session.random);
         if (realHash !== req.body.hashedLogin) {
-            return handleError("Wrong password for '" + user.username + "'", req, res, redirectFail);
+            //return handleError("Wrong password for '" + user.username + "'", req, res, redirectFail);
+            return res.status(401).send("Wrong password for '" + user.username + "'");
         }
 
         // If we are here then authentication was successful.
+        delete(user._doc.password);
         req.logIn(user, function (err) {
             if (err) {
-                return handleError("Login error for '" + user.username + "'", req, res, redirectFail);
+                //return handleError("Login error for '" + user.username + "'", req, res, redirectFail);
+                return res.status(500).send("Login error for '" + user.username + "':" + err);
             }
 
             debug("Logged as: " + user.username);
-            return res.redirect(redirectOk);
+            return res.json(user);
+            //return res.redirect(redirectOk);
             // var flashedReferer = req.flash('referer') || ['/'];
             // var referer = flashedReferer[0];
             // return res.redirect(referer);
@@ -116,11 +123,18 @@ var updateUser = function(user, then) {
     });
 };
 
+var addUser = function(user, then) {
+    var newUser = new User();
+    extend(newUser, user);
+    newUser.save(then);
+};
+
 var exporter = {};
 exporter.authenticator = userAuthenticator;
 exporter.getUsers = getUsers;
 exporter.getUser = getUser;
 exporter.deleteUser = deleteUser;
 exporter.updateUser = updateUser;
+exporter.addUser = addUser;
 
 module.exports = exporter;

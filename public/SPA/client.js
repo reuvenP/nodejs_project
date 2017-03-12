@@ -1,5 +1,43 @@
-var app = angular.module('myapp', ['ngAnimate', 'ui.bootstrap', 'ngRoute']);
+var app = angular.module('myApp', ['ngAnimate', 'ui.bootstrap', 'ngRoute']);
 $.getScript("SPA/views/editUserInit.js");
+
+app.controller('mainCtrl', ['$http', mainCtrl]);
+function mainCtrl($http) {
+    var ctrl = this;
+    ctrl.user = null;
+    $http({
+        method: 'GET',
+        url: '/users/getUserByCookie'
+    }).then(function successCallback(res) {
+        ctrl.user = res.data;
+    }, function errorCallback(response) {
+        ctrl.user = null;
+    });
+}
+
+app.controller('loginCtrl', ['$http', '$scope', loginCtrl]);
+function loginCtrl($http, $scope){
+    var ctrl = this;
+    $('.side-nav li').removeClass('active');
+
+    ctrl.login = function() {
+        var hash = CryptoJS.SHA1(ctrl.username + ':' + ctrl.password + ':' + ctrl.random);
+        var hash_Base64 = hash.toString(CryptoJS.enc.Base64);
+        var req = {
+            method: 'POST',
+            url: '/users/login',
+            data: {username: ctrl.username, hashedLogin: hash_Base64}
+        };
+        $http(req).then(function(res) {
+            ctrl.loginError = null;
+            $scope.$parent.main.user = res.data;
+            gotoHome();
+        },
+        function (res) {
+            ctrl.loginError = res.data;
+        });
+    };
+}
 
 app.factory('usersService', ['$http', '$q', function ($http, $q) {
     var usersList = [];
@@ -34,123 +72,12 @@ app.factory('usersService', ['$http', '$q', function ($http, $q) {
     return usersService;
 }]);
 
-// app.factory('userDetailsInit', [function () {
-//     var init = function () {
-//         $('#contact_form').bootstrapValidator({
-//             // To use feedback icons, ensure that you use Bootstrap v3.1.0 or later
-//             feedbackIcons: {
-//                 valid: 'glyphicon glyphicon-ok',
-//                 invalid: 'glyphicon glyphicon-remove',
-//                 validating: 'glyphicon glyphicon-refresh'
-//             },
-//             fields: {
-//                 first_name: {
-//                     validators: {
-//                         stringLength: {
-//                             min: 2,
-//                         },
-//                         notEmpty: {
-//                             message: 'Please supply your first name'
-//                         }
-//                     }
-//                 },
-//                 last_name: {
-//                     validators: {
-//                         stringLength: {
-//                             min: 2,
-//                         },
-//                         notEmpty: {
-//                             message: 'Please supply your last name'
-//                         }
-//                     }
-//                 },
-//                 email: {
-//                     validators: {
-//                         notEmpty: {
-//                             message: 'Please supply your email address'
-//                         },
-//                         emailAddress: {
-//                             message: 'Please supply a valid email address'
-//                         }
-//                     }
-//                 },
-//                 phone: {
-//                     validators: {
-//                         notEmpty: {
-//                             message: 'Please supply your phone number'
-//                         },
-//                         phone: {
-//                             country: 'US',
-//                             message: 'Please supply a vaild phone number with area code'
-//                         }
-//                     }
-//                 },
-//                 address: {
-//                     validators: {
-//                         stringLength: {
-//                             min: 8,
-//                         },
-//                         notEmpty: {
-//                             message: 'Please supply your street address'
-//                         }
-//                     }
-//                 },
-//                 state: {
-//                     validators: {
-//                         stringLength: {
-//                             min: 4,
-//                         },
-//                         notEmpty: {
-//                             message: 'Please supply your city'
-//                         }
-//                     }
-//                 },
-//                 city: {
-//                     validators: {
-//                         notEmpty: {
-//                             message: 'Please select your state'
-//                         }
-//                     }
-//                 },
-//                 comment: {
-//                     validators: {
-//                         stringLength: {
-//                             min: 10,
-//                             max: 200,
-//                             message: 'Please enter at least 10 characters and no more than 200'
-//                         },
-//                         notEmpty: {
-//                             message: 'Please supply a description of your project'
-//                         }
-//                     }
-//                 }
-//             }
-//         }).on('success.form.bv', function (e) {
-//             $('#success_message').slideDown({opacity: "show"}, "slow") // Do something ...
-//             $('#contact_form').data('bootstrapValidator').resetForm();
-//
-//             // Prevent form submission
-//             e.preventDefault();
-//
-//             // Get the form instance
-//             var $form = $(e.target);
-//
-//             // Get the BootstrapValidator instance
-//             var bv = $form.data('bootstrapValidator');
-//
-//             // Use Ajax to submit form data
-//             $.post($form.attr('action'), $form.serialize(), function (result) {
-//                 console.log(result);
-//             }, 'json');
-//         });
-//     };
-//     return init;
-// }]);
-
 app.config(function ($routeProvider) {
     $routeProvider
         .when('/login', {
-            templateUrl: 'login.html'
+            templateUrl: 'login.html',
+            controller: 'loginCtrl',
+            controllerAs: 'login'
         })
 
         .when('/home', {
@@ -190,8 +117,26 @@ function editUserCtrl($uibModalInstance, editUserInit, user, returnUrl) {
     };
 }
 
-app.controller('usersController', ['$routeParams', '$uibModal', 'usersService', usersController]);
-function usersController($routeParams, $uibModal, usersService) {
+app.controller('userDetailsCtrl', ['$uibModalInstance', 'editUserInit', 'user', userDetailsCtrl]);
+function userDetailsCtrl($uibModalInstance, editUserInit, user) {
+    var ctrl = this;
+    ctrl.user = user;
+
+    $uibModalInstance.rendered.then(function () {
+        editUserInit();
+    });
+
+    ctrl.ok = function () {
+        $uibModalInstance.close(ctrl.user);
+    };
+
+    ctrl.cancel = function () {
+        $uibModalInstance.dismiss();
+    };
+}
+
+app.controller('usersController', ['$routeParams', '$uibModal', '$http', 'usersService', usersController]);
+function usersController($routeParams, $uibModal, $http, usersService) {
     var ctrl = this;
     usersList = [];
     usersService.getUsers().then(
@@ -238,5 +183,35 @@ function usersController($routeParams, $uibModal, usersService) {
 
     ctrl.editUser = function (user) {
         window.location = "/#/users/edit/" + user.username;
+    };
+
+    ctrl.addUser = function() {
+        var modal = $uibModal.open({
+            animation: true,
+            backdrop: 'static',
+            windowsClass: 'center-modal',
+            size: 'md',
+            templateUrl: 'SPA/views/editUser.html',
+            controller: userDetailsCtrl,
+            controllerAs: 'userDetails',
+            resolve: {
+                user: function () { return {}; }
+            }
+        });
+        modal.result.then(function(user) {
+            var req = {
+                method: 'POST',
+                url: '/users/addUser',
+                data: { user: user }
+            };
+            $http(req).then(
+                function (res) {
+                    usersService.getUsers().then(function (users) {
+                        ctrl.usersList = users;
+                    })
+                }, function (res) {
+                    ctrl.error = res.status + ' - ' + res.statusText + ": " + res.data.message;
+            })
+        });
     };
 }

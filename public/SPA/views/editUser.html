@@ -2,7 +2,7 @@
     <fieldset>
 
         <!-- Form Name -->
-        <legend>Neighbour Details <span class="close" ng-click="ctrl.cancel()">&times;</span></legend>
+        <legend>Neighbour Details <span class="close" ng-click="userDetails.cancel()">&times;</span></legend>
 
         <!-- Text input-->
 
@@ -12,7 +12,7 @@
                 <div class="input-group">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
                     <input name="firstName" placeholder="First Name" class="form-control" type="text"
-                           ng-model="ctrl.user.name">
+                           ng-model="userDetails.user.name">
                 </div>
             </div>
         </div>
@@ -128,7 +128,7 @@
         <div class="form-group">
             <label class="col-md-3 control-label"></label>
             <div class="col-md-7">
-                <button ng-click="addCustomer()" type="button" class="btn btn-warning">Add <span
+                <button ng-click="userDetails.ok()" type="button" class="btn btn-warning">Add <span
                         class="glyphicon glyphicon-send"></span></button>
             </div>
         </div>

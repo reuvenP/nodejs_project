@@ -1,6 +1,6 @@
-var myapp = angular.module('myapp', ['ngRoute']);
+var myApp = angular.module('myApp', ['ngRoute']);
 
-myapp.config(function ($routeProvider) {
+myApp.config(function ($routeProvider) {
     $routeProvider
         .when('/', {
             templateUrl: 'SPA/views/home.html'

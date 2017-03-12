@@ -7,7 +7,7 @@
     </div>
 </div>
 
-<div class="row" ng-show="!users.error">
+<div class="row" ng-show="users.usersList">
     <div class="panel panel-default">
         <div class="panel-heading">Neighbours</div>
         <table class="table table-striped">
@@ -35,4 +35,7 @@
             </tr>
         </table>
     </div>
+
+    <button ng-show="main.user.admin" ng-click="users.addUser()" type="button" class="btn btn-primary">Add User <span
+            class="glyphicon glyphicon-plus"></span></button>
 </div>
