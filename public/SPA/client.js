@@ -4,14 +4,14 @@ $.getScript("SPA/views/editUserInit.js");
 app.controller('mainCtrl', ['$http', mainCtrl]);
 function mainCtrl($http) {
     var ctrl = this;
-    ctrl.user = null;
+    ctrl.myUser = null;
     $http({
         method: 'GET',
         url: '/users/getUserByCookie'
     }).then(function successCallback(res) {
-        ctrl.user = res.data;
+        ctrl.myUser = res.data;
     }, function errorCallback(response) {
-        ctrl.user = null;
+        ctrl.myUser = null;
     });
 }
 
@@ -30,7 +30,7 @@ function loginCtrl($http, $scope){
         };
         $http(req).then(function(res) {
             ctrl.loginError = null;
-            $scope.$parent.main.user = res.data;
+            $scope.$parent.main.myUser = res.data;
             gotoHome();
         },
         function (res) {
@@ -95,38 +95,24 @@ app.config(function ($routeProvider) {
         });
 });
 
-app.controller('editUserCtrl', ['$uibModalInstance', 'editUserInit', 'user', 'returnUrl', editUserCtrl]);
-function editUserCtrl($uibModalInstance, editUserInit, user, returnUrl) {
-    var ctrl = this;
-    ctrl.user = user;
-
-    $uibModalInstance.rendered.then(function () {
-        editUserInit();
-    });
-
-    $uibModalInstance.closed.then(function () {
-        window.location = returnUrl;
-    });
-
-    ctrl.ok = function () {
-        $uibModalInstance.close();
-    };
-
-    ctrl.cancel = function () {
-        $uibModalInstance.dismiss();
-    };
-}
-
 app.controller('userDetailsCtrl', ['$uibModalInstance', 'editUserInit', 'user', userDetailsCtrl]);
 function userDetailsCtrl($uibModalInstance, editUserInit, user) {
     var ctrl = this;
     ctrl.user = user;
+    ctrl.rawPassword = "";
 
     $uibModalInstance.rendered.then(function () {
         editUserInit();
     });
 
     ctrl.ok = function () {
+        if (ctrl.rawPassword) {
+            var publicKey = $("#publicKey").val();
+            var encrypter = new JSEncrypt();
+            encrypter.setPublicKey(publicKey);
+            ctrl.user.encryptedPassword = encrypter.encrypt(ctrl.rawPassword);
+        }
+
         $uibModalInstance.close(ctrl.user);
     };
 
@@ -135,37 +121,13 @@ function userDetailsCtrl($uibModalInstance, editUserInit, user) {
     };
 }
 
-app.controller('usersController', ['$routeParams', '$uibModal', '$http', 'usersService', usersController]);
-function usersController($routeParams, $uibModal, $http, usersService) {
+app.controller('usersController', ['$routeParams', '$uibModal', '$http', '$scope', 'usersService', usersController]);
+function usersController($routeParams, $uibModal, $http, $scope, usersService) {
     var ctrl = this;
-    usersList = [];
+    ctrl.usersList = [];
     usersService.getUsers().then(
         function (users) {
             ctrl.usersList = users;
-            if ($routeParams.operation && $routeParams.username) {
-                for (var i = 0; i < ctrl.usersList.length; i++) {
-                    if (ctrl.usersList[i].username === $routeParams.username) {
-                        $uibModal.open({
-                            animation: true,
-                            backdrop: 'static',
-                            windowsClass: 'center-modal',
-                            size: 'md',
-                            templateUrl: 'SPA/views/editUser.html',
-                            controller: editUserCtrl,
-                            controllerAs: 'ctrl',
-                            resolve: {
-                                user: function () {
-                                    return ctrl.usersList[i];
-                                },
-                                returnUrl: function () {
-                                    return '/#/users';
-                                }
-                            }
-                        });
-                        break;
-                    }
-                }
-            }
         }, function (response) {
             ctrl.error = response.status + ' - ' + response.statusText + ": " + response.data;
         }
@@ -181,11 +143,7 @@ function usersController($routeParams, $uibModal, $http, usersService) {
             });
     };
 
-    ctrl.editUser = function (user) {
-        window.location = "/#/users/edit/" + user.username;
-    };
-
-    ctrl.addUser = function() {
+    var openDetailsModal = function(user) {
         var modal = $uibModal.open({
             animation: true,
             backdrop: 'static',
@@ -194,10 +152,17 @@ function usersController($routeParams, $uibModal, $http, usersService) {
             templateUrl: 'SPA/views/editUser.html',
             controller: userDetailsCtrl,
             controllerAs: 'userDetails',
+            bindToController: true,
+            scope: $scope.$parent,
             resolve: {
-                user: function () { return {}; }
+                user: function () { return user; }
             }
         });
+        return modal;
+    };
+
+    ctrl.addUser = function() {
+        var modal = openDetailsModal({}); //new user
         modal.result.then(function(user) {
             var req = {
                 method: 'POST',
@@ -212,6 +177,24 @@ function usersController($routeParams, $uibModal, $http, usersService) {
                 }, function (res) {
                     ctrl.error = res.status + ' - ' + res.statusText + ": " + res.data.message;
             })
+        });
+    };
+
+    ctrl.editUser = function (user) {
+        var modal = openDetailsModal(angular.copy(user));
+        modal.result.then(function(userResult) {
+            var req = {
+                method: 'PUT',
+                url: '/users/editUser/' + user._id,
+                data: { user: userResult }
+            };
+            $http(req).then(
+                function (res) {
+                    angular.copy(res.data, user);
+                    delete(ctrl.error);
+                }, function (res) {
+                    ctrl.error = res.status + ' - ' + res.statusText + ": " + (res.data.message ? res.data.message : res.data);
+                })
         });
     };
 }

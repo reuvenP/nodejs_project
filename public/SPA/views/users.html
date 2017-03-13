@@ -1,7 +1,7 @@
 <div class="row" ng-show="users.error">
     <div class="col-lg-12">
         <div class="alert alert-danger alert-dismissable">
-            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+            <button type="button" class="close" ng-click="users.error=null" aria-hidden="true">&times;</button>
             <i class="fa fa-exclamation-circle"></i> <strong>Error:</strong> {{users.error}}
         </div>
     </div>
@@ -18,24 +18,25 @@
                 <th>Email</th>
                 <th>Username</th>
                 <th>Admin?</th>
+                <th ng-show="main.myUser.isAdmin">Active?</th>
                 <th>Actions</th>
             </tr>
             </thead>
-            <tr ng-repeat="user in users.usersList | orderBy:'apartment'">
+            <tr ng-repeat="user in users.usersList | filter: (!main.myUser.isAdmin ? {isActive: true} : '') | orderBy:'apartment'">
                 <td>{{user.apartment}}</td>
-                <td><a href="#/users/profile/{{user.username}}">{{user.name}}</a></td>
+                <td><a href="javascript:void(0)">{{user.name}}</a></td>
                 <td>{{user.email}}</td>
                 <td>{{user.username}}</td>
-                <td><span ng-attr-class="{{user.admin && 'glyphicon glyphicon-ok'}}"></span></td>
+                <td><span ng-attr-class="{{user.isAdmin && 'glyphicon glyphicon-ok'}}"></span></td>
+                <td ng-show="main.myUser.isAdmin"><span ng-attr-class="{{user.isActive && 'glyphicon glyphicon-ok'}}"></span></td>
                 <td>
-                    <!--<button type="button" class="btn btn-primary">Edit</button>-->
-                    <button type="button" class="btn btn-primary" ng-hide="user.myUser" ng-click="users.editUser(user)">Edit</button>
-                    <button type="button" class="btn btn-primary" ng-hide="user.myUser" ng-click="users.deleteUser(user)">Delete</button>
+                    <button type="button" class="btn btn-primary" ng-hide="!main.myUser.isAdmin && main.myUser._id !== user._id" ng-click="users.editUser(user)">Edit</button>
+                    <button type="button" class="btn btn-primary" ng-hide="!main.myUser.isAdmin || main.myUser._id === user._id" ng-click="users.deleteUser(user)">Delete</button>
                 </td>
             </tr>
         </table>
     </div>
 
-    <button ng-show="main.user.admin" ng-click="users.addUser()" type="button" class="btn btn-primary">Add User <span
+    <button ng-show="main.myUser.isAdmin" ng-click="users.addUser()" type="button" class="btn btn-primary">Add User <span
             class="glyphicon glyphicon-plus"></span></button>
 </div>

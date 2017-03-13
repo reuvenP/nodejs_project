@@ -7,11 +7,11 @@
         <!-- Text input-->
 
         <div class="form-group">
-            <label class="col-md-3 control-label">First Name</label>
+            <label class="col-md-3 control-label">Name</label>
             <div class="col-md-7 inputGroupContainer">
                 <div class="input-group">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
-                    <input name="firstName" placeholder="First Name" class="form-control" type="text"
+                    <input placeholder="Neighbour name" class="form-control" type="text"
                            ng-model="userDetails.user.name">
                 </div>
             </div>
@@ -20,12 +20,24 @@
         <!-- Text input-->
 
         <div class="form-group">
-            <label class="col-md-3 control-label">Last Name</label>
+            <label class="col-md-3 control-label">Username</label>
             <div class="col-md-7 inputGroupContainer">
                 <div class="input-group">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
-                    <input name="lastName" placeholder="Last Name" class="form-control" type="text"
-                           ng-model="customer.lastName">
+                    <input placeholder="Username" class="form-control" type="text"
+                           ng-model="userDetails.user.username">
+                </div>
+            </div>
+        </div>
+
+        <!-- Text input-->
+        <div class="form-group">
+            <label class="col-md-3 control-label">Password</label>
+            <div class="col-md-7 inputGroupContainer">
+                <div class="input-group">
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+                    <input placeholder="Enter new password" class="form-control" type="password"
+                           ng-model="userDetails.rawPassword">
                 </div>
             </div>
         </div>
@@ -37,7 +49,7 @@
                 <div class="input-group">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-envelope"></i></span>
                     <input name="email" placeholder="E-Mail Address" class="form-control" type="text"
-                           ng-model="customer.mail">
+                           ng-model="userDetails.user.email">
                 </div>
             </div>
         </div>
@@ -50,8 +62,8 @@
             <div class="col-md-7 inputGroupContainer">
                 <div class="input-group">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-earphone"></i></span>
-                    <input name="phone" placeholder="(845)555-1212" class="form-control" type="text"
-                           ng-model="customer.phone">
+                    <input placeholder="(845)555-1212" class="form-control" type="text"
+                           ng-model="userDetails.user.phone">
                 </div>
             </div>
         </div>
@@ -59,76 +71,45 @@
         <!-- Text input-->
 
         <div class="form-group">
-            <label class="col-md-3 control-label">Address</label>
+            <label class="col-md-3 control-label">Apartment</label>
             <div class="col-md-7 inputGroupContainer">
                 <div class="input-group">
                     <span class="input-group-addon"><i class="glyphicon glyphicon-home"></i></span>
-                    <input name="address" placeholder="Address" class="form-control" type="text"
-                           ng-model="customer.adress">
+                    <input class="form-control" type="number"
+                           ng-model="userDetails.user.apartment">
                 </div>
             </div>
         </div>
 
         <!-- Text input-->
 
-        <div class="form-group">
-            <label class="col-md-3 control-label">State</label>
+        <div ng-show="userDetails.main.myUser.isAdmin && userDetails.main.myUser._id !== userDetails.user._id" class="form-group">
+            <label class="col-md-3 control-label">Admin?</label>
             <div class="col-md-7 inputGroupContainer">
                 <div class="input-group">
-                    <span class="input-group-addon"><i class="glyphicon glyphicon-home"></i></span>
-                    <input name="state" placeholder="state" class="form-control" type="text"
-                           ng-model="customer.state">
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-king"></i></span>
+                    <input name="isAdmin" class="form-control" type="checkbox"
+                           ng-model="userDetails.user.isAdmin">
                 </div>
             </div>
         </div>
 
-        <!-- Select Basic -->
-
-        <div class="form-group">
-            <label class="col-md-3 control-label">City</label>
-            <div class="col-md-7 selectContainer">
+        <div ng-show="userDetails.main.myUser.isAdmin && userDetails.main.myUser._id !== userDetails.user._id" class="form-group">
+            <label class="col-md-3 control-label">Active?</label>
+            <div class="col-md-7 inputGroupContainer">
                 <div class="input-group">
-                    <span class="input-group-addon"><i class="glyphicon glyphicon-list"></i></span>
-                    <select name="city" class="form-control selectpicker" ng-model="customer.city">
-                        <option value=" ">Please select your city</option>
-                        <option>Ashdod</option>
-                        <option>Ashkelon</option>
-                        <option>Bat Yam</option>
-                        <option>Beersheva</option>
-                        <option>Bnei Brak</option>
-                        <option>Dimona</option>
-                        <option>Eilat</option>
-                        <option>Hadera</option>
-                        <option>Haifa</option>
-                        <option>Jerusalem</option>
-                        <option>Netanya</option>
-                        <option>Ofakim</option>
-                        <option>Or Yehuda</option>
-                        <option>Petah Tikva</option>
-                        <option>Ra'anana</option>
-                        <option>Ramat Gan</option>
-                        <option> Ramat HaSharon</option>
-                        <option>Rehovot</option>
-                        <option>Rishon LeZion</option>
-                        <option>Rosh HaAyin</option>
-                        <option>Tel Aviv</option>
-                        <option> Tiberias</option>
-                    </select>
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-check"></i></span>
+                    <input class="form-control" type="checkbox"
+                           ng-model="userDetails.user.isActive">
                 </div>
             </div>
-        </div>
-
-        <!-- Success message -->
-        <div class="alert alert-success" role="alert" id="success_message">Success <i
-                class="glyphicon glyphicon-thumbs-up"></i> Thanks for contacting us, we will get back to you
-            shortly.
         </div>
 
         <!-- <Button> -->
         <div class="form-group">
             <label class="col-md-3 control-label"></label>
             <div class="col-md-7">
-                <button ng-click="userDetails.ok()" type="button" class="btn btn-warning">Add <span
+                <button ng-click="userDetails.ok()" type="button" class="btn btn-warning">Save <span
                         class="glyphicon glyphicon-send"></span></button>
             </div>
         </div>

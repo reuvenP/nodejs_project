@@ -1,4 +1,5 @@
 var express = require('express');
+var rsa = require('../rsa');
 var router = express.Router();
 var users = require('../users_manage');
 var debug = require('debug')('nodejs-project:users');
@@ -33,17 +34,11 @@ router.get('/getUsers', function (req, res, next) {
         return res.status(401).send('You must login first to view the neighbours');
     }
 
-    users.getUsers(function (error, users) {
+    users.getUsers(!req.user.isAdmin, function (error, users) {
         if (error) {
             return res.status(500).send(error);
         }
 
-        for (var i = 0; i < users.length; i++) {
-            if (users[i]._id.toString() == req.user._id.toString()) {
-                users[i]._doc.myUser = true;
-                break;
-            }
-        }
         res.json(users);
     });
 });
@@ -65,36 +60,47 @@ function checkLoggedIn(req, res, next) {
 }
 
 function checkAdmin(req, res, next) {
-    if (!req.user || !req.user.admin) {
+    if (!req.user || !req.user.isAdmin) {
         return res.status(401).send('You must login as admin for that operation');
     }
     next();
 }
 
 function checkAdminOrSelfOperation(req, res, next) {
-    if (!req.user.admin && req.user._id != req.params.userId) {
+    if (!req.user.isAdmin && req.user._id != req.params.userId) {
         return res.status(401).send('You cannot do this operation on other users');
     }
     next();
 }
 
-router.put('/updateUser/:userId', checkLoggedIn, checkAdminOrSelfOperation, validateUser, function (req, res, next) {
+router.put('/editUser/:userId', checkLoggedIn, checkAdminOrSelfOperation, validateUser, function (req, res, next) {
     var user = req.body.user;
-    if (!req.user.admin) {
-        delete(user.admin);
+    if (user.encryptedPassword) {
+        var buffer = Buffer.from(user.encryptedPassword, "base64");
+        var decryptedPassword = rsa.decrypt(buffer);
+        var password = decryptedPassword.toString();
+        if (!password) {
+            return res.status(401).send("Password cannot be empty!!!");
+        }
+        user.password = password;
+    }
+    if (!req.user.isAdmin) {
+        delete(user.isAdmin);
         delete(user.isActive);
         delete(user.recoveryNumber);
     }
-    users.updateUser(user, function(error) {
-       if (error) {
+    users.editUser(user, function(error, newUser) {
+        if (error) {
            return res.status(500).send(error);
-       }
+        }
+        delete(newUser._doc.password);
+        return res.json(newUser);
     });
 });
 
 
 function checkDeletePermission(req, res, next) {
-    if (!req.user || !req.user.admin){
+    if (!req.user || !req.user.isAdmin){
         return res.status(401).send('Must login with active admin account for deleting users');
     }
     if (req.user._id == req.params.userId) {
@@ -119,11 +125,12 @@ router.delete('/deleteUser/:userId', checkDeletePermission, function (req, res, 
 
 
 router.post('/addUser', checkAdmin, validateUser, function(req, res, next) {
-    users.addUser(req.body.user, function(error, user) {
+    users.addUser(req.body.user, function(error, newUser) {
         if (error) {
             return res.status(500).send(error);
         }
-        return res.json(user);
+        delete(newUser._doc.password);
+        return res.json(newUser);
     });
 });
 

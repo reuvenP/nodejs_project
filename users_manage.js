@@ -82,8 +82,8 @@ var userAuthenticator = function (req, res, next, redirectOk, redirectFail) {
     })(req, res, next);
 };
 
-var getUsers = function(then) {
-    var query = User.find({isActive: true});
+var getUsers = function(onlyActive, then) {
+    var query = onlyActive ? User.find({isActive: true}) : User.find();
     query.select('-password');
     query.exec(function (err, users) {
         then(err, users);
@@ -97,7 +97,7 @@ var deleteUser = function(userId, then) {
         user.isActive = false;
         user.save(function (err) {
             if (err) return then(err, []);
-            getUsers(then);
+            getUsers(true, then); //TODO don't auto reload
         });
     });
 };
@@ -106,7 +106,6 @@ var getUser = function(userId, then) {
     User.findById(userId, function (err, user) {
         if (err) return then(err, null);
         if (user) {
-            delete(user.password);
             return then(null, user);
         }
         else {
@@ -115,8 +114,8 @@ var getUser = function(userId, then) {
     });
 };
 
-var updateUser = function(user, then) {
-    getUser(user.userId, function(err, current) {
+var editUser = function(user, then) {
+    getUser(user._id, function(err, current) {
         if (err) return then(err);
         extend(current, user);
         current.save(then)
@@ -134,7 +133,7 @@ exporter.authenticator = userAuthenticator;
 exporter.getUsers = getUsers;
 exporter.getUser = getUser;
 exporter.deleteUser = deleteUser;
-exporter.updateUser = updateUser;
+exporter.editUser = editUser;
 exporter.addUser = addUser;
 
 module.exports = exporter;

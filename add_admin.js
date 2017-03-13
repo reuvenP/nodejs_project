@@ -6,7 +6,7 @@ User.create({
     password: '123',
     email: 'aba4000@gmail.com',
     apartment: 2,
-    admin: true
+    isAdmin: true
 }, function(err, user) {
     if (err) throw err;
     console.log('User created:' + user);
@@ -18,7 +18,7 @@ User.create({
     password: '123',
     email: 'aba40000@gmail.com',
     apartment: 1,
-    admin: true
+    isAdmin: true
 }, function(err, user) {
     if (err) throw err;
     console.log('User created:' + user);
