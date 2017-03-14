@@ -75,6 +75,7 @@ function checkAdminOrSelfOperation(req, res, next) {
 
 router.put('/editUser/:userId', checkLoggedIn, checkAdminOrSelfOperation, validateUser, function (req, res, next) {
     var user = req.body.user;
+    delete(user.password);
     if (user.encryptedPassword) {
         var buffer = Buffer.from(user.encryptedPassword, "base64");
         var decryptedPassword = rsa.decrypt(buffer);
