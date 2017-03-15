@@ -73,21 +73,31 @@ function checkAdminOrSelfOperation(req, res, next) {
     next();
 }
 
-router.put('/editUser/:userId', checkLoggedIn, checkAdminOrSelfOperation, validateUser, function (req, res, next) {
-    var user = req.body.user;
-    delete(user.password);
-    if (user.encryptedPassword) {
-        var buffer = Buffer.from(user.encryptedPassword, "base64");
+function decryptPassword(encryptedPassword) {
+    if (encryptedPassword) {
+        var buffer = Buffer.from(encryptedPassword, "base64");
         var decryptedPassword = rsa.decrypt(buffer);
         var password = decryptedPassword.toString();
+        return password;
+    }
+}
+
+router.put('/editUser/:userId', checkLoggedIn, checkAdminOrSelfOperation, validateUser, function (req, res, next) {
+    var user = req.body.user;
+    delete(user.isDeleted);
+    delete(user.password);
+
+    if (user.encryptedPassword) {
+        var password = decryptPassword(user.encryptedPassword);
         if (!password) {
             return res.status(401).send("Password cannot be empty!!!");
         }
         user.password = password;
     }
+
     if (!req.user.isAdmin) {
         delete(user.isAdmin);
-        delete(user.isActive);
+        delete(user.isBlocked);
         delete(user.recoveryNumber);
     }
     users.editUser(user, function(error, newUser) {
@@ -126,7 +136,14 @@ router.delete('/deleteUser/:userId', checkDeletePermission, function (req, res, 
 
 
 router.post('/addUser', checkAdmin, validateUser, function(req, res, next) {
-    users.addUser(req.body.user, function(error, newUser) {
+    var user = req.body.user;
+    //user.isActive = true;
+    user.password = decryptPassword(user.encryptedPassword);
+    if (!user.password) {
+        return res.status(401).send("Password cannot be empty!!!");
+    }
+
+    users.addUser(user, function(error, newUser) {
         if (error) {
             return res.status(500).send(error);
         }

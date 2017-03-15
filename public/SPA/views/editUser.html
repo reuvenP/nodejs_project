@@ -94,13 +94,13 @@
             </div>
         </div>
 
-        <div ng-show="userDetails.main.myUser.isAdmin && userDetails.main.myUser._id !== userDetails.user._id" class="form-group">
-            <label class="col-md-3 control-label">Active?</label>
+        <div ng-show="!userDetails.newUser && userDetails.main.myUser.isAdmin && userDetails.main.myUser._id !== userDetails.user._id" class="form-group">
+            <label class="col-md-3 control-label">Blocked?</label>
             <div class="col-md-7 inputGroupContainer">
                 <div class="input-group">
-                    <span class="input-group-addon"><i class="glyphicon glyphicon-check"></i></span>
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-remove"></i></span>
                     <input class="form-control" type="checkbox"
-                           ng-model="userDetails.user.isActive">
+                           ng-model="userDetails.user.isBlocked">
                 </div>
             </div>
         </div>

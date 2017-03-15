@@ -8,7 +8,7 @@ var extend = require('util')._extend;
 passport.use(new LocalStrategy(
     {usernameField: 'username', passwordField: 'hashedLogin'},
     function (username, hashedLogin, done) {
-        User.findOne({username: username, isActive: true}, function (error, user) {
+        User.findOne({ username: username, isDeleted: {$ne: true}, isBlocked: {$ne: true} }, function (error, user) {
             if (error) {
                 debug("Login error: " + error);
                 return done(error);
@@ -32,7 +32,7 @@ passport.serializeUser(function (user, done) {
 passport.deserializeUser(function (id, done) {
     User.findById(id, function (err, user) {
         if (err) return done(err, null);
-        if (!user.isActive) return done(null, null);
+        if (user.isDeleted || user.isBlocked) return done(null, null);
         delete(user._doc.password);
         done(null, user);
     });
@@ -54,7 +54,7 @@ var userAuthenticator = function (req, res, next, redirectOk, redirectFail) {
         }
         if (!user) {
             //return handleError("Unknown user '" + req.body.username + "'", req, res, redirectFail);
-            return res.status(401).send("Unknown user '" + req.body.username + "'");
+            return res.status(401).send("Unknown or blocked user '" + req.body.username + "'");
         }
 
         //check the login details that were hashed by random number
@@ -82,8 +82,8 @@ var userAuthenticator = function (req, res, next, redirectOk, redirectFail) {
     })(req, res, next);
 };
 
-var getUsers = function(onlyActive, then) {
-    var query = onlyActive ? User.find({isActive: true}) : User.find();
+var getUsers = function(onlyNotBlocked, then) {
+    var query = onlyNotBlocked ? User.find({isDeleted: {$ne: true}, isBlocked: {$ne: true}}) : User.find({isDeleted: {$ne: true}});
     query.select('-password');
     query.exec(function (err, users) {
         then(err, users);
@@ -94,7 +94,7 @@ var deleteUser = function(userId, then) {
     User.findById(userId, function (err, user) {
         if (err) return then(err, []);
 
-        user.isActive = false;
+        user.isDeleted = true;
         user.save(function (err) {
             if (err) return then(err, []);
             getUsers(true, then); //TODO don't auto reload

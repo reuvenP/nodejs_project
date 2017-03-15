@@ -95,28 +95,40 @@ app.config(function ($routeProvider) {
         });
 });
 
-app.controller('userDetailsCtrl', ['$uibModalInstance', 'editUserInit', 'user', userDetailsCtrl]);
-function userDetailsCtrl($uibModalInstance, editUserInit, user) {
-    var ctrl = this;
-    ctrl.user = user;
-    ctrl.rawPassword = "";
+function findMainCtrl($scope) {
+    while ($scope && (!$scope.main || $scope.main.constructor.name !== 'mainCtrl')) {
+        $scope = $scope.$parent;
+    }
+    if ($scope) {
+        return $scope.main;
+    }
+}
+
+app.controller('userDetailsCtrl', ['$uibModalInstance', '$scope', 'editUserInit', 'user', userDetailsCtrl]);
+function userDetailsCtrl($uibModalInstance, $scope, editUserInit, user) {
+    $scope.userDetails =  $scope.userDetails || {};
+    var vm = $scope.userDetails;
+    vm.main = findMainCtrl($scope);
+    vm.newUser = !user;
+    vm.user = user || {};
+    vm.rawPassword = "";
 
     $uibModalInstance.rendered.then(function () {
         editUserInit();
     });
 
-    ctrl.ok = function () {
-        if (ctrl.rawPassword) {
+    vm.ok = function () {
+        if (vm.rawPassword) {
             var publicKey = $("#publicKey").val();
             var encrypter = new JSEncrypt();
             encrypter.setPublicKey(publicKey);
-            ctrl.user.encryptedPassword = encrypter.encrypt(ctrl.rawPassword);
+            vm.user.encryptedPassword = encrypter.encrypt(vm.rawPassword);
         }
 
-        $uibModalInstance.close(ctrl.user);
+        $uibModalInstance.close(vm.user);
     };
 
-    ctrl.cancel = function () {
+    vm.cancel = function () {
         $uibModalInstance.dismiss();
     };
 }
@@ -152,8 +164,7 @@ function usersController($routeParams, $uibModal, $http, $scope, usersService) {
             templateUrl: 'SPA/views/editUser.html',
             controller: userDetailsCtrl,
             controllerAs: 'userDetails',
-            bindToController: true,
-            scope: $scope.$parent,
+            scope: $scope,
             resolve: {
                 user: function () { return user; }
             }
@@ -162,20 +173,18 @@ function usersController($routeParams, $uibModal, $http, $scope, usersService) {
     };
 
     ctrl.addUser = function() {
-        var modal = openDetailsModal({}); //new user
+        var modal = openDetailsModal(); //new user
         modal.result.then(function(user) {
             var req = {
                 method: 'POST',
                 url: '/users/addUser',
                 data: { user: user }
             };
-            $http(req).then(
-                function (res) {
-                    usersService.getUsers().then(function (users) {
-                        ctrl.usersList = users;
-                    })
-                }, function (res) {
-                    ctrl.error = res.status + ' - ' + res.statusText + ": " + res.data.message;
+            $http(req).then(function (res) {
+                delete(ctrl.error);
+                ctrl.usersList.push(res.data);
+            }, function (res) {
+                ctrl.error = res.status + ' - ' + res.statusText + ": " + (res.data.message || res.data.errmsg || res.data);
             })
         });
     };
@@ -190,10 +199,10 @@ function usersController($routeParams, $uibModal, $http, $scope, usersService) {
             };
             $http(req).then(
                 function (res) {
-                    angular.copy(res.data, user);
+                    angular.extend(user, res.data);
                     delete(ctrl.error);
                 }, function (res) {
-                    ctrl.error = res.status + ' - ' + res.statusText + ": " + (res.data.message ? res.data.message : res.data);
+                    ctrl.error = res.status + ' - ' + res.statusText + ": " + (res.data.message || res.data.errmsg || res.data);
                 })
         });
     };

@@ -18,17 +18,17 @@
                 <th>Email</th>
                 <th>Username</th>
                 <th>Admin?</th>
-                <th ng-show="main.myUser.isAdmin">Active?</th>
+                <th ng-show="main.myUser.isAdmin">Blocked?</th>
                 <th>Actions</th>
             </tr>
             </thead>
-            <tr ng-repeat="user in users.usersList | filter: (!main.myUser.isAdmin ? {isActive: true} : '') | orderBy:'apartment'">
+            <tr ng-repeat="user in users.usersList | filter: (!main.myUser.isAdmin ? {isBlocked:false} : '') | orderBy:'apartment'">
                 <td>{{user.apartment}}</td>
                 <td><a href="javascript:void(0)">{{user.name}}</a></td>
                 <td>{{user.email}}</td>
                 <td>{{user.username}}</td>
                 <td><span ng-attr-class="{{user.isAdmin && 'glyphicon glyphicon-ok'}}"></span></td>
-                <td ng-show="main.myUser.isAdmin"><span ng-attr-class="{{user.isActive && 'glyphicon glyphicon-ok'}}"></span></td>
+                <td ng-show="main.myUser.isAdmin"><span ng-attr-class="{{user.isBlocked && 'glyphicon glyphicon-ok'}}"></span></td>
                 <td>
                     <button type="button" class="btn btn-primary" ng-hide="!main.myUser.isAdmin && main.myUser._id !== user._id" ng-click="users.editUser(user)">Edit</button>
                     <button type="button" class="btn btn-primary" ng-hide="!main.myUser.isAdmin || main.myUser._id === user._id" ng-click="users.deleteUser(user)">Delete</button>
