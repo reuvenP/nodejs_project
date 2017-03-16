@@ -12,11 +12,11 @@
     </div>
 </div>
 
-<div class="row" ng-show="login.loginError">
+<div class="row" ng-show="login.message">
     <div class="col-lg-12">
         <div class="alert alert-danger alert-dismissable">
-            <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
-            <i class="fa fa-exclamation-circle"></i>  <strong>Login Error:</strong> {{login.loginError}}
+            <button type="button" class="close" aria-hidden="true" ng-click="login.clearMessage()">&times;</button>
+            <i class="fa fa-exclamation-circle"></i>  <strong>Login Error:</strong> {{login.message}}
         </div>
     </div>
 </div>

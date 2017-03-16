@@ -1,5 +1,6 @@
 var express = require('express');
 var rsa = require('../rsa');
+var email = require('../email');
 var router = express.Router();
 var users = require('../users_manage');
 var debug = require('debug')('nodejs-project:users');
@@ -149,6 +150,37 @@ router.post('/addUser', checkAdmin, validateUser, function(req, res, next) {
         }
         delete(newUser._doc.password);
         return res.json(newUser);
+    });
+});
+
+router.get('/forgotPassword/:username', function(req, res, next) {
+    users.getUsers(true, function(error, usersList) {
+        if (error) {
+            return res.status(500).send(error);
+        }
+        var user = usersList.find(function(u) { return u.username === req.params.username; });
+        if (!user) {
+            return res.status(500).send('Username not exist or blocked');
+        }
+        user.recoveryNumber = Math.floor((Math.random() * 2000000000));
+        users.editUser(user, function(error, newUser) {
+            if (error) {
+                return res.status(500).send(error);
+            }
+            var mailOptions = {
+                from: '"Vaad Bait" <targil666@walla.co.il>',
+                to: newUser.email,
+                subject: 'Password recovery link for neighbor',
+                text: 'The recovery link is http://localhost:' + req.socket.localPort + '/users/recover?username=' + newUser.username + '&recoveryNumber=' + newUser.recoveryNumber
+            };
+            // send mail with defined transport object
+            email.sendMail(mailOptions, function(error, info){
+                if (error) {
+                    return res.status(500).send(error);
+                }
+                res.send('Recovery link was sent to ' + newUser.email);
+            });
+        });
     });
 });
 

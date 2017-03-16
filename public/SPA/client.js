@@ -29,14 +29,30 @@ function loginCtrl($http, $scope){
             data: {username: ctrl.username, hashedLogin: hash_Base64}
         };
         $http(req).then(function(res) {
-            ctrl.loginError = null;
+            delete(ctrl.message);
             $scope.$parent.main.myUser = res.data;
             gotoHome();
         },
         function (res) {
-            ctrl.loginError = res.data;
+            ctrl.message = res.data;
         });
     };
+
+    ctrl.forgotPassword = function() {
+        var req = {
+            method: 'GET',
+            url: '/users/forgotPassword/' + ctrl.username
+        };
+        $http(req).then(function(res) {
+            ctrl.message = res.data;
+        }, function (res) {
+            ctrl.message = res.data;
+        });
+    };
+
+    ctrl.clearMessage = function () {
+        delete(ctrl.message);
+    }
 }
 
 app.factory('usersService', ['$http', '$q', function ($http, $q) {
