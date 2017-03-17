@@ -34,6 +34,7 @@ passport.deserializeUser(function (id, done) {
         if (err) return done(err, null);
         if (user.isDeleted || user.isBlocked) return done(null, null);
         delete(user._doc.password);
+        delete(user._doc.recoveryNumber);
         done(null, user);
     });
 });
@@ -66,6 +67,7 @@ var userAuthenticator = function (req, res, next, redirectOk, redirectFail) {
 
         // If we are here then authentication was successful.
         delete(user._doc.password);
+        delete(user._doc.recoveryNumber);
         req.logIn(user, function (err) {
             if (err) {
                 //return handleError("Login error for '" + user.username + "'", req, res, redirectFail);
@@ -84,7 +86,7 @@ var userAuthenticator = function (req, res, next, redirectOk, redirectFail) {
 
 var getUsers = function(onlyNotBlocked, then) {
     var query = onlyNotBlocked ? User.find({isDeleted: {$ne: true}, isBlocked: {$ne: true}}) : User.find({isDeleted: {$ne: true}});
-    query.select('-password');
+    query.select('-password -recoveryNumber -isDeleted'); //TODO do -password -recoveryNumber in upper level
     query.exec(function (err, users) {
         then(err, users);
     });
@@ -102,10 +104,11 @@ var deleteUser = function(userId, then) {
     });
 };
 
-var getUser = function(userId, then) {
+var getUserById = function(userId, then) {
     User.findById(userId, function (err, user) {
         if (err) return then(err, null);
-        if (user) {
+        if (user && !user.isDeleted) {
+            delete(user._doc.isDeleted);
             return then(null, user);
         }
         else {
@@ -114,8 +117,21 @@ var getUser = function(userId, then) {
     });
 };
 
+var getUserByUsername = function(username, then) {
+    User.find({username: username, isDeleted: {$ne: true}}, function (err, user) {
+        if (err) return then(err, null);
+        if (user) {
+            delete(user[0]._doc.isDeleted);
+            return then(null, user[0]);
+        }
+        else {
+            then("user not found", null)
+        }
+    });
+};
+
 var editUser = function(user, then) {
-    getUser(user._id, function(err, current) {
+    getUserById(user._id, function(err, current) {
         if (err) return then(err);
         extend(current, user);
         current.save(then)
@@ -128,12 +144,22 @@ var addUser = function(user, then) {
     newUser.save(then);
 };
 
+var deleteRecoveryNumber = function(userId, then) {
+    getUserById(userId, function(err, user) {
+        if (err) return then(err);
+        //user.recoveryNumber = null; //TODO unmark!
+        user.save(then)
+    });
+};
+
 var exporter = {};
 exporter.authenticator = userAuthenticator;
 exporter.getUsers = getUsers;
-exporter.getUser = getUser;
+exporter.getUserById = getUserById;
+exporter.getUserByUsername = getUserByUsername;
 exporter.deleteUser = deleteUser;
 exporter.editUser = editUser;
 exporter.addUser = addUser;
+exporter.deleteRecoveryNumber = deleteRecoveryNumber;
 
 module.exports = exporter;

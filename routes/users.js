@@ -45,10 +45,12 @@ router.get('/getUsers', function (req, res, next) {
 });
 
 router.get('/getUser/:userId', function (req, res, next) {
-    users.getUser(req.params.userId, function (error, user) {
+    users.getUserById(req.params.userId, function (error, user) {
         if (error) {
             return res.status(500).send(error);
         }
+        delete(user._doc.password);
+        delete(user._doc.recoveryNumber);
         res.json(user);
     });
 });
@@ -87,6 +89,7 @@ router.put('/editUser/:userId', checkLoggedIn, checkAdminOrSelfOperation, valida
     var user = req.body.user;
     delete(user.isDeleted);
     delete(user.password);
+    delete(user.recoveryNumber);
 
     if (user.encryptedPassword) {
         var password = decryptPassword(user.encryptedPassword);
@@ -99,13 +102,13 @@ router.put('/editUser/:userId', checkLoggedIn, checkAdminOrSelfOperation, valida
     if (!req.user.isAdmin) {
         delete(user.isAdmin);
         delete(user.isBlocked);
-        delete(user.recoveryNumber);
     }
     users.editUser(user, function(error, newUser) {
         if (error) {
            return res.status(500).send(error);
         }
         delete(newUser._doc.password);
+        delete(newUser._doc.recoveryNumber);
         return res.json(newUser);
     });
 });
@@ -141,7 +144,7 @@ router.post('/addUser', checkAdmin, validateUser, function(req, res, next) {
     //user.isActive = true;
     user.password = decryptPassword(user.encryptedPassword);
     if (!user.password) {
-        return res.status(401).send("Password cannot be empty!!!");
+        return res.status(401).send("Password cannot be empty!");
     }
 
     users.addUser(user, function(error, newUser) {
@@ -149,18 +152,19 @@ router.post('/addUser', checkAdmin, validateUser, function(req, res, next) {
             return res.status(500).send(error);
         }
         delete(newUser._doc.password);
+        delete(newUser._doc.recoveryNumber);
         return res.json(newUser);
     });
 });
 
 router.get('/forgotPassword/:username', function(req, res, next) {
-    users.getUsers(true, function(error, usersList) {
+    users.getUserByUsername(req.params.username, function(error, user /*usersList*/) {
         if (error) {
             return res.status(500).send(error);
         }
-        var user = usersList.find(function(u) { return u.username === req.params.username; });
-        if (!user) {
-            return res.status(500).send('Username not exist or blocked');
+        //var user = usersList.find(function(u) { return u.username === req.params.username; });
+        if (!user || user.isBlocked) {
+            return res.status(500).send("Unknown or blocked user '" + req.params.username + "'");
         }
         user.recoveryNumber = Math.floor((Math.random() * 2000000000));
         users.editUser(user, function(error, newUser) {
@@ -171,7 +175,7 @@ router.get('/forgotPassword/:username', function(req, res, next) {
                 from: '"Vaad Bait" <targil666@walla.co.il>',
                 to: newUser.email,
                 subject: 'Password recovery link for neighbor',
-                text: 'The recovery link is http://localhost:' + req.socket.localPort + '/users/recover?username=' + newUser.username + '&recoveryNumber=' + newUser.recoveryNumber
+                text: 'The recovery link is http://localhost:' + req.socket.localPort + '/users/recover/' + newUser.username + '?recoveryNumber=' + newUser.recoveryNumber
             };
             // send mail with defined transport object
             email.sendMail(mailOptions, function(error, info){
@@ -182,6 +186,57 @@ router.get('/forgotPassword/:username', function(req, res, next) {
             });
         });
     });
+});
+
+router.get('/recover/:username', function (req, res, next) {
+    if (req.params.username && req.query.recoveryNumber) {
+        var recoveryNumber;
+        try {
+            recoveryNumber = parseInt(req.query.recoveryNumber);
+        }
+        catch (e) {
+            return res.status(500).send('Invalid recovery link');
+        }
+
+        users.getUserByUsername(req.params.username, function (error, user /* usersList */) {
+            //var user = usersList.find(function (u) {
+            //    return u.username === req.params.username;
+            //});
+            if (user && !user.isBlocked && user.recoveryNumber === recoveryNumber) {
+                users.deleteRecoveryNumber(user._id, function(err) {
+                    if (err) {
+                        return res.status(500).send(err);
+                    }
+                    req.logout();
+                    req.session.regenerate(function(err) {
+                        if (err) {
+                            return res.status(500).send(err);
+                        }
+                        req.login(user, function(err) {
+                            if (err) {
+                                return res.status(500).send(err);
+                            }
+
+                            delete(user._doc.password);
+                            //res.json(user);
+                            res.redirect('/#/login/editUser');
+                        });
+                    });
+                });
+            }
+            else if (!user || user.isBlocked) {
+                return res.status(500).send("Unknown or blocked user '" + req.params.username + "'");
+            }
+            else {
+                return res.status(500).send('Invalid recovery link');
+            }
+        }, function () {
+            return res.status(500).send('Invalid recovery link');
+        });
+    }
+    else {
+        return res.status(500).send('Invalid recovery link');
+    }
 });
 
 module.exports = router;

@@ -1,10 +1,11 @@
 var app = angular.module('myApp', ['ngAnimate', 'ui.bootstrap', 'ngRoute']);
 $.getScript("SPA/views/editUserInit.js");
 
-app.controller('mainCtrl', ['$http', mainCtrl]);
-function mainCtrl($http) {
+app.controller('mainCtrl', ['$http', '$uibModal', mainCtrl]);
+function mainCtrl($http, $uibModal) {
     var ctrl = this;
     ctrl.myUser = null;
+
     $http({
         method: 'GET',
         url: '/users/getUserByCookie'
@@ -15,10 +16,24 @@ function mainCtrl($http) {
     });
 }
 
-app.controller('loginCtrl', ['$http', '$scope', loginCtrl]);
-function loginCtrl($http, $scope){
+app.controller('loginCtrl', ['$http', '$scope', '$routeParams', 'usersService', loginCtrl]);
+function loginCtrl($http, $scope, $routeParams, usersService){
     var ctrl = this;
     $('.side-nav li').removeClass('active');
+
+    var showMessage = function(message, type) {
+      ctrl.message = message;
+      if (type) {
+          ctrl.messageType = 'alert-' + type;
+      }
+      else {
+          delete(ctrl.messageType);
+      }
+    };
+
+    var clearMessage = function() {
+        delete(ctrl.message);
+    };
 
     ctrl.login = function() {
         var hash = CryptoJS.SHA1(ctrl.username + ':' + ctrl.password + ':' + ctrl.random);
@@ -29,12 +44,12 @@ function loginCtrl($http, $scope){
             data: {username: ctrl.username, hashedLogin: hash_Base64}
         };
         $http(req).then(function(res) {
-            delete(ctrl.message);
+            clearMessage();
             $scope.$parent.main.myUser = res.data;
             gotoHome();
         },
         function (res) {
-            ctrl.message = res.data;
+            showMessage(res.data, 'danger');
         });
     };
 
@@ -44,18 +59,30 @@ function loginCtrl($http, $scope){
             url: '/users/forgotPassword/' + ctrl.username
         };
         $http(req).then(function(res) {
-            ctrl.message = res.data;
+            showMessage(res.data, 'info');
         }, function (res) {
-            ctrl.message = res.data;
+            showMessage(res.data, 'danger');
         });
     };
 
     ctrl.clearMessage = function () {
-        delete(ctrl.message);
+        clearMessage();
+    };
+
+    if ($routeParams.operation === 'editUser') {
+        var modal = usersService.openUserEditModal($scope, $scope.$parent.main.myUser);
+        modal.then(
+            function(updatedUser) {
+                usersService.editUser(updatedUser).then(function(res) {
+                    showMessage(res.data, 'info');
+            }, function (res) {
+                    showMessage(res.data, 'danger');
+            })}
+        );
     }
 }
 
-app.factory('usersService', ['$http', '$q', function ($http, $q) {
+app.factory('usersService', ['$http', '$q', '$uibModal', function ($http, $q, $uibModal) {
     var usersList = [];
     var getUsers = function () {
         var deferred = $q.defer();
@@ -82,15 +109,46 @@ app.factory('usersService', ['$http', '$q', function ($http, $q) {
         return deferred.promise;
     };
 
+    var editUser = function(user) {
+        var req = {
+        method: 'PUT',
+            url: '/users/editUser/' + user._id,
+            data: { user: user }
+        };
+        return $http(req);
+    };
+
+    var openUserEditModal = function($scope, user) {
+        var modal = $uibModal.open({
+            animation: true,
+            backdrop: 'static',
+            windowsClass: 'center-modal',
+            size: 'md',
+            templateUrl: 'SPA/views/editUser.html',
+            controller: userDetailsCtrl,
+            controllerAs: 'userDetails',
+            scope: $scope,
+            resolve: {
+                user: function () {
+                    return user;
+                }
+            }
+        });
+        return modal.result;
+    };
+
     var usersService = {};
     usersService.getUsers = getUsers;
     usersService.deleteUser = deleteUser;
+    usersService.editUser = editUser;
+    usersService.openUserEditModal = openUserEditModal;
+
     return usersService;
 }]);
 
 app.config(function ($routeProvider) {
     $routeProvider
-        .when('/login', {
+        .when('/login/:operation?', {
             templateUrl: 'login.html',
             controller: 'loginCtrl',
             controllerAs: 'login'
