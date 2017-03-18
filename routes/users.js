@@ -11,7 +11,7 @@ router.get('/', function (req, res, next) {
 });
 
 router.post('/login', function (req, res, next) {
-    users.authenticator(req, res, next, '/#/home', '/#/login');
+    users.authenticator(req, res, next);
 });
 
 router.get('/logout', function (req, res, next) {
@@ -130,14 +130,13 @@ function validateUser(req, res, next) {
 }
 
 router.delete('/deleteUser/:userId', checkDeletePermission, function (req, res, next) {
-    users.deleteUser(req.params.userId, function(error, users) {
+    users.deleteUser(req.params.userId, function(error) {
         if (error) {
             return res.status(500).send(error);
         }
-        return res.json(users);
+        res.send();
     });
 });
-
 
 router.post('/addUser', checkAdmin, validateUser, function(req, res, next) {
     var user = req.body.user;

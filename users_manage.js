@@ -39,29 +39,20 @@ passport.deserializeUser(function (id, done) {
     });
 });
 
-function handleError(error, req, res, redirectTo) {
-    debug(error);
-    req.flash('error', error);
-    res.redirect(redirectTo);
-}
-
-var userAuthenticator = function (req, res, next, redirectOk, redirectFail) {
+var userAuthenticator = function (req, res, next) {
     passport.authenticate('local', function (err, user, info) {
         debug("start");
         //get user object from LocalStrategy
         if (err) {
-            //return handleError('User authentication failed: ' + err, req, res, redirectFail);
             return res.status(500).send('User authentication failed: ' + err);
         }
         if (!user) {
-            //return handleError("Unknown user '" + req.body.username + "'", req, res, redirectFail);
             return res.status(401).send("Unknown or blocked user '" + req.body.username + "'");
         }
 
         //check the login details that were hashed by random number
         var realHash = sha1(user.username + ':' + user.password + ':' + req.session.random);
         if (realHash !== req.body.hashedLogin) {
-            //return handleError("Wrong password for '" + user.username + "'", req, res, redirectFail);
             return res.status(401).send("Wrong password for '" + user.username + "'");
         }
 
@@ -70,16 +61,10 @@ var userAuthenticator = function (req, res, next, redirectOk, redirectFail) {
         delete(user._doc.recoveryNumber);
         req.logIn(user, function (err) {
             if (err) {
-                //return handleError("Login error for '" + user.username + "'", req, res, redirectFail);
                 return res.status(500).send("Login error for '" + user.username + "':" + err);
             }
-
             debug("Logged as: " + user.username);
             return res.json(user);
-            //return res.redirect(redirectOk);
-            // var flashedReferer = req.flash('referer') || ['/'];
-            // var referer = flashedReferer[0];
-            // return res.redirect(referer);
         });
     })(req, res, next);
 };
@@ -98,8 +83,8 @@ var deleteUser = function(userId, then) {
 
         user.isDeleted = true;
         user.save(function (err) {
-            if (err) return then(err, []);
-            getUsers(true, then); //TODO don't auto reload
+            if (err) return then(err);
+            then();
         });
     });
 };
@@ -147,8 +132,8 @@ var addUser = function(user, then) {
 var deleteRecoveryNumber = function(userId, then) {
     getUserById(userId, function(err, user) {
         if (err) return then(err);
-        //user.recoveryNumber = null; //TODO unmark!
-        user.save(then)
+        user.recoveryNumber = null;
+        user.save(then);
     });
 };
 
