@@ -219,7 +219,7 @@ router.get('/recover/:username', function (req, res, next) {
 
                             delete(user._doc.password);
                             //res.json(user);
-                            res.redirect('/#/login/editUser');
+                            res.redirect('/#/home/editUser');
                         });
                     });
                 });

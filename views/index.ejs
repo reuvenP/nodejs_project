@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" xmlns="http://www.w3.org/1999/html">
 
 <head>
     <meta charset="utf-8">
@@ -230,6 +230,18 @@
 
         <div id="page-wrapper">
 
+            <div class="row" ng-show="main.message">
+                <div class="col-lg-12">
+                    <div ng-class="[{'alert': true, 'alert-dismissable': true}, main.messageType]">
+                        <button type="button" class="close" aria-hidden="true" ng-click="main.clearMessage()">&times;</button>
+                        <span ng-show="main.messageType == 'alert-danger'"> <i class="fa fa-exclamation-circle"></i> </span>
+                        <span ng-show="main.messageType != 'alert-danger'"> <i class="fa fa-info-circle"></i> </span>
+                        <span ng-show="main.messageTitle"> <strong>{{main.messageTitle + ': '}}</strong> </span>
+                        {{main.message}}
+                    </div>
+                </div>
+            </div>
+
             <div class="container-fluid" id="mainView" ng-view>
             </div>
             <!-- /.container-fluid -->
@@ -252,7 +264,10 @@
                 $('.side-nav li').removeClass('active');
                 $(this.parentElement).addClass('active');
             })
-            //window.location.href = '/#/home';
+            var hrefParts = window.location.href.split('#');
+            if (hrefParts.length < 2) {
+                window.location.href = '/#/home';
+            }
         });
     </script>
 

@@ -1,96 +1,133 @@
 var app = angular.module('myApp', ['ngAnimate', 'ui.bootstrap', 'ngRoute']);
 $.getScript("SPA/views/editUserInit.js");
 
-app.controller('mainCtrl', ['$http', '$uibModal', mainCtrl]);
-function mainCtrl($http, $uibModal) {
-    var ctrl = this;
-    ctrl.myUser = null;
+app.controller('mainCtrl', ['usersService', mainCtrl]);
+function mainCtrl(usersService) {
+    var vm = this;
+    vm.myUser = null;
 
-    $http({
-        method: 'GET',
-        url: '/users/getUserByCookie'
-    }).then(function successCallback(res) {
-        ctrl.myUser = res.data;
-    }, function errorCallback(response) {
-        ctrl.myUser = null;
-    });
+    vm.showMessage = function(message, type, title) {
+        vm.message = message;
+        if (type) {
+            vm.messageType = 'alert-' + type;
+        }
+        else {
+            vm.messageType = 'alert-info';
+        }
+
+        if (title) {
+            vm.messageTitle = title;
+        }
+        else {
+            delete(vm.messageTitle);
+        }
+    };
+
+    vm.clearMessage = function() {
+        delete(vm.message);
+    };
+
+    usersService.getUserByCookie().then(
+        function successCallback(res) {
+            vm.myUser = res.data;
+        }, function errorCallback(res) {
+            vm.myUser = null;
+        }
+    );
 }
 
-app.controller('loginCtrl', ['$http', '$scope', '$routeParams', 'usersService', loginCtrl]);
-function loginCtrl($http, $scope, $routeParams, usersService){
-    var ctrl = this;
+app.controller('loginCtrl', ['$scope', 'usersService', loginCtrl]);
+function loginCtrl($scope, usersService){
+    var vm = this;
+    vm.main = findMainCtrl($scope);
+    vm.main.clearMessage();
     $('.side-nav li').removeClass('active');
 
-    var showMessage = function(message, type) {
-      ctrl.message = message;
-      if (type) {
-          ctrl.messageType = 'alert-' + type;
-      }
-      else {
-          delete(ctrl.messageType);
-      }
-    };
-
-    var clearMessage = function() {
-        delete(ctrl.message);
-    };
-
-    ctrl.login = function() {
-        var hash = CryptoJS.SHA1(ctrl.username + ':' + ctrl.password + ':' + ctrl.random);
+    vm.login = function() {
+        var hash = CryptoJS.SHA1(vm.username + ':' + vm.password + ':' + vm.random);
         var hash_Base64 = hash.toString(CryptoJS.enc.Base64);
-        var req = {
-            method: 'POST',
-            url: '/users/login',
-            data: {username: ctrl.username, hashedLogin: hash_Base64}
-        };
-        $http(req).then(function(res) {
-            clearMessage();
-            $scope.$parent.main.myUser = res.data;
-            gotoHome();
-        },
-        function (res) {
-            showMessage(res.data, 'danger');
-        });
+        usersService.login(vm.username, hash_Base64).then(
+            function(res) {
+                vm.main.myUser = res.data;
+                gotoHome();
+                vm.main.showMessage('Welcome ' + vm.main.myUser.name);
+            },
+            function (res) {
+                vm.main.showMessage(res.data, 'danger', 'Login error');
+            }
+        );
     };
 
-    ctrl.forgotPassword = function() {
-        var req = {
-            method: 'GET',
-            url: '/users/forgotPassword/' + ctrl.username
-        };
-        $http(req).then(function(res) {
-            showMessage(res.data, 'info');
-        }, function (res) {
-            showMessage(res.data, 'danger');
-        });
+    vm.forgotPassword = function() {
+        usersService.forgotPassword(vm.username).then(
+            function(res) {
+                vm.main.showMessage(res.data, 'info');
+            }, function (res) {
+                vm.main.showMessage(res.data, 'danger');
+            }
+        );
     };
+}
 
-    ctrl.clearMessage = function () {
-        clearMessage();
-    };
+app.controller('homeCtrl', ['$scope', '$routeParams', 'usersService', homeCtrl]);
+function homeCtrl($scope, $routeParams, usersService) {
+    $scope.home =  $scope.home || {};
+    var vm = $scope.home;
+    vm.main = findMainCtrl($scope);
+    vm.main.clearMessage();
 
     if ($routeParams.operation === 'editUser') {
-        var modal = usersService.openUserEditModal($scope, $scope.$parent.main.myUser);
+        var modal = usersService.openUserEditModal($scope, vm.main.myUser);
         modal.then(
             function(updatedUser) {
                 usersService.editUser(updatedUser).then(function(res) {
-                    showMessage(res.data, 'info');
+                    vm.main.showMessage('User updated successfully');
+                    window.location = '/#/home';
             }, function (res) {
-                    showMessage(res.data, 'danger');
+                    vm.main.showMessage(res.data, 'danger');
+                window.location = '/#/home';
             })}
         );
     }
 }
 
-app.factory('usersService', ['$http', '$q', '$uibModal', function ($http, $q, $uibModal) {
-    var usersList = [];
-    var getUsers = function () {
+app.factory('usersService', ['$http', '$q', '$uibModal', usersService]);
+function usersService($http, $q, $uibModal) {
+    var usersService = {};
+    usersService.usersList = [];
+
+    function refreshUsersList(newUsersList) {
+        usersService.usersList.length = 0;
+        for(var i = 0, len = newUsersList.length; i < len; ++i) {
+            usersService.usersList[i] = newUsersList[i];
+        }
+    }
+
+    function replaceUserInList(oldUser, newUser) {
+        for(var i = 0, len = usersService.usersList.length; i < len; ++i) {
+            if (usersService.usersList[i]._id === oldUser._id) {
+                usersService.usersList[i] = newUser;
+            }
+        }
+    }
+
+    function deleteUserFromList(userId) {
+        var newUserList = [];
+        for(var i = 0, j = 0, len = usersService.usersList.length; i < len; ++i) {
+            if (usersService.usersList[i]._id != userId) {
+                newUserList[j++] = usersService.usersList[i];
+            }
+        }
+        refreshUsersList(newUserList);
+    }
+
+    var refreshUsers = function () {
         var deferred = $q.defer();
-        $http.get('/users/getUsers').then(function (response) {
-            usersList = response.data;
-            deferred.resolve(usersList);
-        }, function (response) {
-            deferred.reject(response);
+        $http.get('/users/getUsers').then(function (res) {
+            refreshUsersList(res.data);
+            deferred.resolve();
+        }, function (res) {
+            deferred.reject(res);
         });
 
         return deferred.promise;
@@ -99,21 +136,75 @@ app.factory('usersService', ['$http', '$q', '$uibModal', function ($http, $q, $u
     var deleteUser = function (userId) {
         var deferred = $q.defer();
         $http.delete('/users/deleteUser/' + userId)
-            .then(function (response) {
-                usersList = response.data;
-                deferred.resolve(usersList);
-            }, function (response) {
-                deferred.reject(response);
+            .then(function (res) {
+                deleteUserFromList(userId);
+                deferred.resolve(userId);
+            }, function (res) {
+                deferred.reject(res);
             });
 
         return deferred.promise;
     };
 
+    var addUser = function(user) {
+        var deferred = $q.defer();
+        var req = {
+            method: 'POST',
+            url: '/users/addUser',
+            data: { user: user }
+        };
+        $http(req).then(
+            function (res) {
+                usersService.usersList.push(res.data);
+                deferred.resolve(res.data);
+            }, function (res) {
+                deferred.reject(res);
+            }
+        );
+
+        return deferred.promise;
+    };
+
     var editUser = function(user) {
+        var deferred = $q.defer();
         var req = {
         method: 'PUT',
             url: '/users/editUser/' + user._id,
             data: { user: user }
+        };
+        $http(req).then(
+            function (res) {
+                replaceUserInList(user, res.data);
+                deferred.resolve(res.data);
+            }, function (res) {
+                deferred.reject(res);
+            }
+        );
+
+        return deferred.promise;
+    };
+
+    var login = function(username, hashedLogin) {
+        var req = {
+            method: 'POST',
+            url: '/users/login',
+            data: {username: username, hashedLogin: hashedLogin}
+        };
+        return $http(req);
+    };
+
+    var getUserByCookie = function() {
+        var req = {
+            method: 'GET',
+            url: '/users/getUserByCookie'
+        };
+        return $http(req);
+    };
+
+    var forgotPassword = function(username) {
+        var req = {
+            method: 'GET',
+            url: '/users/forgotPassword/' + username
         };
         return $http(req);
     };
@@ -137,31 +228,42 @@ app.factory('usersService', ['$http', '$q', '$uibModal', function ($http, $q, $u
         return modal.result;
     };
 
-    var usersService = {};
-    usersService.getUsers = getUsers;
+    usersService.refreshUsers = refreshUsers;
     usersService.deleteUser = deleteUser;
+    usersService.addUser = addUser;
     usersService.editUser = editUser;
+    usersService.login = login;
+    usersService.getUserByCookie = getUserByCookie;
+    usersService.forgotPassword = forgotPassword;
     usersService.openUserEditModal = openUserEditModal;
 
     return usersService;
-}]);
+}
 
 app.config(function ($routeProvider) {
     $routeProvider
-        .when('/login/:operation?', {
+        .when('/login', {
             templateUrl: 'login.html',
             controller: 'loginCtrl',
             controllerAs: 'login'
         })
 
-        .when('/home', {
-            templateUrl: 'SPA/views/home.html'
+        .when('/home/:operation?', {
+            templateUrl: 'SPA/views/home.html',
+            controller: 'homeCtrl',
+            controllerAs: 'home'
         })
 
-        .when('/users/:operation?/:username?', {
+        .when('/users', {
             templateUrl: 'SPA/views/users.html',
             controller: 'usersController',
             controllerAs: 'users'
+        })
+
+        .when('/', {
+            templateUrl: 'SPA/views/home.html',
+            controller: 'homeCtrl',
+            controllerAs: 'home'
         })
 
         .otherwise({
@@ -186,6 +288,7 @@ function userDetailsCtrl($uibModalInstance, $scope, editUserInit, user) {
     vm.newUser = !user;
     vm.user = user || {};
     vm.rawPassword = "";
+    vm.main.clearMessage();
 
     $uibModalInstance.rendered.then(function () {
         editUserInit();
@@ -207,77 +310,57 @@ function userDetailsCtrl($uibModalInstance, $scope, editUserInit, user) {
     };
 }
 
-app.controller('usersController', ['$routeParams', '$uibModal', '$http', '$scope', 'usersService', usersController]);
-function usersController($routeParams, $uibModal, $http, $scope, usersService) {
-    var ctrl = this;
-    ctrl.usersList = [];
-    usersService.getUsers().then(
-        function (users) {
-            ctrl.usersList = users;
-        }, function (response) {
-            ctrl.error = response.status + ' - ' + response.statusText + ": " + response.data;
+app.controller('usersController', ['$scope', 'usersService', usersController]);
+function usersController($scope, usersService) {
+    var vm = this;
+    vm.main = findMainCtrl($scope);
+    vm.usersList = usersService.usersList;
+    vm.main.clearMessage();
+
+    usersService.refreshUsers().then(
+        function (res) {
+            vm.main.clearMessage();
+        },
+        function (res) {
+            vm.main.showMessage(res.status + ' - ' + res.statusText + ": " + (res.data.message || res.data.errmsg || res.data), 'danger', 'Error');
         }
     );
 
-    ctrl.deleteUser = function (user) {
+    vm.deleteUser = function (user) {
         //TODO modal confirm box
-        usersService.deleteUser(user._id)
-            .then(function (users) {
-                ctrl.usersList = users;
-            }, function (response) {
-                ctrl.error = response.status + ' - ' + response.statusText + ": " + response.data;
-            });
-    };
-
-    var openDetailsModal = function(user) {
-        var modal = $uibModal.open({
-            animation: true,
-            backdrop: 'static',
-            windowsClass: 'center-modal',
-            size: 'md',
-            templateUrl: 'SPA/views/editUser.html',
-            controller: userDetailsCtrl,
-            controllerAs: 'userDetails',
-            scope: $scope,
-            resolve: {
-                user: function () { return user; }
+        usersService.deleteUser(user._id).then(
+            function (res) {
+                vm.main.showMessage('User deleted successfully');
+            },
+            function (res) {
+                vm.main.showMessage(res.status + ' - ' + res.statusText + ": " + (res.data.message || res.data.errmsg || res.data), 'danger', 'Error');
             }
-        });
-        return modal;
+        );
     };
 
-    ctrl.addUser = function() {
-        var modal = openDetailsModal(); //new user
-        modal.result.then(function(user) {
-            var req = {
-                method: 'POST',
-                url: '/users/addUser',
-                data: { user: user }
-            };
-            $http(req).then(function (res) {
-                delete(ctrl.error);
-                ctrl.usersList.push(res.data);
-            }, function (res) {
-                ctrl.error = res.status + ' - ' + res.statusText + ": " + (res.data.message || res.data.errmsg || res.data);
-            })
-        });
-    };
-
-    ctrl.editUser = function (user) {
-        var modal = openDetailsModal(angular.copy(user));
-        modal.result.then(function(userResult) {
-            var req = {
-                method: 'PUT',
-                url: '/users/editUser/' + user._id,
-                data: { user: userResult }
-            };
-            $http(req).then(
+    vm.addUser = function() {
+        var modal =  usersService.openUserEditModal($scope); //new user
+        modal.then(function(user) {
+            usersService.addUser(user).then(
                 function (res) {
-                    angular.extend(user, res.data);
-                    delete(ctrl.error);
+                    vm.main.showMessage('User added successfully');
                 }, function (res) {
-                    ctrl.error = res.status + ' - ' + res.statusText + ": " + (res.data.message || res.data.errmsg || res.data);
-                })
+                    vm.main.showMessage(res.status + ' - ' + res.statusText + ": " + (res.data.message || res.data.errmsg || res.data), 'danger', 'Error');
+                }
+            )
+        });
+    };
+
+    vm.editUser = function (user) {
+        var modal = usersService.openUserEditModal($scope, angular.copy(user));
+        modal.then(function(userResult) {
+            usersService.editUser(userResult).then(
+                function (res) {
+                    vm.main.showMessage('User updated successfully');
+                }, function (res) {
+                    vm.main.showMessage(res.status + ' - ' + res.statusText + ": " + (res.data.message || res.data.errmsg || res.data), 'danger', 'Error');
+                }
+            )
         });
     };
 }
