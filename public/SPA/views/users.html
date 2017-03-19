@@ -21,8 +21,12 @@
                 <td><span ng-attr-class="{{user.isAdmin && 'glyphicon glyphicon-ok'}}"></span></td>
                 <td ng-show="main.myUser.isAdmin"><span ng-attr-class="{{user.isBlocked && 'glyphicon glyphicon-ok'}}"></span></td>
                 <td>
-                    <button type="button" class="btn btn-primary" ng-hide="!main.myUser.isAdmin && main.myUser._id !== user._id" ng-click="users.editUser(user)">Edit</button>
-                    <button type="button" class="btn btn-primary" ng-hide="!main.myUser.isAdmin || main.myUser._id === user._id" ng-click="users.deleteUser(user)">Delete</button>
+                    <button type="button" class="btn btn-primary" ng-hide="!main.myUser.isAdmin && main.myUser._id !== user._id" ng-click="users.editUser(user)">
+                        Edit <span class="glyphicon glyphicon-edit"> </span>
+                    </button>
+                    <button type="button" class="btn btn-primary" ng-hide="!main.myUser.isAdmin || main.myUser._id === user._id" ng-click="users.deleteUser(user)">
+                        Delete <span class="glyphicon glyphicon-remove"> </span>
+                    </button>
                 </td>
             </tr>
         </table>

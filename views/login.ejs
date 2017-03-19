@@ -15,22 +15,36 @@
 <div class="row">
     <div class="col-lg-4"></div>
 
-    <div class="col-sm-12 col-md-10 col-md-offset-1">
-        <div class="form-group input-group">
-            <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
-            <input class="form-control" type="text" id="username" placeholder="Enter Username" ng-model="login.username" required/>
-        </div>
-        <div class="form-group input-group">
-            <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
-            <input class="form-control" type="password" id="password" placeholder="Enter Password" ng-model="login.password" required/>
-        </div>
-        <input type="hidden" id="random" ng-model="login.random" ng-init="login.random=<%- random %>" />
-
-        <div class="form-group">
-            <button ng-click="login.login()" type="button" class="btn btn-primary">Login <span
-                        class="glyphicon glyphicon-log-in"></span></button>
-            <button ng-click="login.forgotPassword()" type="button" class="btn btn-default">Forgot Password <span
-                        class="glyphicon glyphicon-question-sign"></span></button>
+    <div class="col-lg-4">
+        <div class="panel panel-primary">
+            <div class="panel-heading">
+                <h3 class="panel-title">Login</h3>
+            </div>
+            <div class="panel-body">
+                <div class="form-group input-group">
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-user"></i></span>
+                    <input class="form-control" type="text" id="username" placeholder="Enter Username" ng-model="login.username" required/>
+                </div>
+                <div class="form-group input-group">
+                    <span class="input-group-addon"><i class="glyphicon glyphicon-lock"></i></span>
+                    <input class="form-control" type="password" id="password" placeholder="Enter Password" ng-model="login.password" required/>
+                </div>
+                <input type="hidden" id="random" ng-model="login.random" ng-init="login.random=<%- random %>" />
+                <div class="row">
+                    <div class="col-lg-4">
+                        <div class="form-group">
+                            <button ng-click="login.login()" type="button" class="btn btn-primary btn-block">Login
+                                    <span class="glyphicon glyphicon-log-in"></span></button>
+                        </div>
+                        <div class="form-group">
+                            <button ng-click="login.signup()" type="button" class="btn btn-primary btn-block">Sign up
+                                <span class="glyphicon glyphicon-edit"></span></button>
+                        </div>
+                    </div>
+                    <button ng-click="login.forgotPassword()" type="button" class="btn btn-default">Forgot Password
+                            <span class="glyphicon glyphicon-question-sign"></span></button>
+                </div>
+            </div>
         </div>
     </div>
 

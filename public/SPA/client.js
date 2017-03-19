@@ -67,6 +67,21 @@ function loginCtrl($scope, usersService){
             }
         );
     };
+
+    vm.signup = function() {
+        usersService.openUserEditModal($scope).then(
+            function (newUser) {
+                newUser.isBlocked = true;
+                usersService.addUser(newUser).then(
+                    function () {
+                        vm.main.showMessage('User created successfully, but it is blocked until the admin approves it');
+                    }, function (res) {
+                        vm.main.showMessage(res.data, 'danger');
+                    }
+                );
+            }
+        );
+    }
 }
 
 app.controller('homeCtrl', ['$scope', '$routeParams', 'usersService', homeCtrl]);

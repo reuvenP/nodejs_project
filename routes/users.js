@@ -138,9 +138,11 @@ router.delete('/deleteUser/:userId', checkDeletePermission, function (req, res, 
     });
 });
 
-router.post('/addUser', checkAdmin, validateUser, function(req, res, next) {
+router.post('/addUser', validateUser, function(req, res, next) {
     var user = req.body.user;
-    //user.isActive = true;
+    if (!user.isBlocked && (!req.user || !req.user.isAdmin)) {
+        return res.status(401).send('Must login with active admin account for adding unblocked users');
+    }
     user.password = decryptPassword(user.encryptedPassword);
     if (!user.password) {
         return res.status(401).send("Password cannot be empty!");
@@ -197,10 +199,7 @@ router.get('/recover/:username', function (req, res, next) {
             return res.status(500).send('Invalid recovery link');
         }
 
-        users.getUserByUsername(req.params.username, function (error, user /* usersList */) {
-            //var user = usersList.find(function (u) {
-            //    return u.username === req.params.username;
-            //});
+        users.getUserByUsername(req.params.username, function (error, user) {
             if (user && !user.isBlocked && user.recoveryNumber === recoveryNumber) {
                 users.deleteRecoveryNumber(user._id, function(err) {
                     if (err) {
